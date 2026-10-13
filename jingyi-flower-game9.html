@@ -1,0 +1,2732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>静依的花</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    background:#08070a;color:#cfc9c0;
+    font-family:"Songti SC","STSong","SimSun","Noto Serif SC",serif;
+    overflow:hidden;-webkit-font-smoothing:antialiased;
+    -webkit-tap-highlight-color:transparent;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(circle at 50% 15%, rgba(120,30,30,0.13), transparent 60%),
+      radial-gradient(circle at 85% 85%, rgba(60,20,40,0.08), transparent 55%);
+    transition:background 2s;
+  }
+  body.dread::before{
+    background:
+      radial-gradient(circle at 50% 40%, rgba(160,20,20,0.22), transparent 70%),
+      radial-gradient(circle at 20% 80%, rgba(80,10,30,0.15), transparent 60%);
+  }
+
+  /* ============ 标题屏 ============ */
+  #title-screen{
+    position:fixed;inset:0;z-index:20;
+    display:flex;align-items:center;justify-content:center;
+    background:#08070a;transition:opacity .9s ease;
+    overflow-y:auto;
+  }
+  #title-screen.hidden{opacity:0;pointer-events:none;}
+  .title-inner{text-align:center;padding:2.4rem 2rem;max-width:90vw;}
+  .flower-mark{
+    display:block;font-size:2.6rem;color:#8b2f2f;margin-bottom:1.8rem;
+    animation:breathe 5s ease-in-out infinite;
+  }
+  @keyframes breathe{0%,100%{opacity:.4;transform:scale(1);}50%{opacity:1;transform:scale(1.06);}}
+  h1{
+    font-size:2rem;letter-spacing:.45em;font-weight:normal;
+    color:#e0d8cc;margin-bottom:1.2rem;text-indent:.45em;
+  }
+  .subtitle{font-size:.82rem;color:#5c5750;letter-spacing:.2em;margin-bottom:3rem;}
+  #start-btn{
+    background:transparent;border:1px solid #4a2020;color:#c9a5a5;
+    padding:.85rem 2.8rem;font-size:.95rem;font-family:inherit;
+    letter-spacing:.35em;text-indent:.35em;cursor:pointer;transition:all .35s;
+  }
+  #start-btn:hover,#start-btn:active{
+    background:#180808;border-color:#8b2f2f;color:#e8ddd0;
+  }
+  .hint{margin-top:2.2rem;font-size:.7rem;color:#3a3632;letter-spacing:.15em;}
+
+  /* ============ 结局回廊 ============ */
+  #endings-list{
+    margin-top:3rem;
+    font-size:.8rem;
+    letter-spacing:.14em;
+    line-height:2.1;
+    min-height:1em;
+  }
+  #endings-list .el-title{
+    font-size:.7rem;color:#5a4a4a;
+    letter-spacing:.5em;text-indent:.5em;
+    margin-bottom:1rem;
+    position:relative;
+  }
+  #endings-list .el-title::before,
+  #endings-list .el-title::after{
+    content:'—';color:#3a2a2a;margin:0 .8em;
+  }
+  .ending-link{
+    display:block;
+    width:100%;
+    background:transparent;
+    border:none;
+    border-left:2px solid transparent;
+    color:#4a4540;
+    font-family:inherit;
+    font-size:.82rem;
+    letter-spacing:.18em;
+    padding:.45rem 1rem;
+    margin:.2rem 0;
+    cursor:pointer;
+    text-align:left;
+    transition:all .3s;
+    border-radius:2px;
+  }
+  .ending-link.locked{
+    opacity:.45;
+    cursor:default;
+    letter-spacing:.4em;
+    text-indent:.4em;
+  }
+  .ending-link.got:hover,.ending-link.got:active{
+    border-left-color:currentColor;
+    background:rgba(255,255,255,.03);
+    padding-left:1.4rem;
+    filter:brightness(1.2);
+  }
+  .ending-link .el-arrow{
+    float:right;
+    opacity:.5;
+    font-size:.75rem;
+  }
+
+  /* ============ 游戏屏 ============ */
+  #game{position:fixed;inset:0;display:flex;flex-direction:column;z-index:5;}
+  #game.hidden{display:none;}
+
+  /* ===== HUD ===== */
+  #hud{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:1.1rem 1.4rem;
+    letter-spacing:.22em;
+    border-bottom:1px solid rgba(139,47,47,.4);
+    background:linear-gradient(180deg, rgba(30,16,16,.75), rgba(15,10,10,.35));
+    box-shadow:0 2px 18px rgba(120,30,30,.14);
+    flex-shrink:0;
+    padding-top:max(1.1rem, env(safe-area-inset-top));
+    position:relative;
+    z-index:2;
+  }
+  #hud::after{
+    content:'';
+    position:absolute;left:10%;right:10%;bottom:-1px;height:1px;
+    background:linear-gradient(90deg, transparent, rgba(180,60,60,.6), transparent);
+    pointer-events:none;
+  }
+  #hud-left{display:flex;align-items:center;gap:.75rem;}
+  #hud-right{display:flex;align-items:center;gap:.85rem;}
+
+  #back-btn{
+    background:transparent;
+    border:1px solid rgba(139,47,47,.45);
+    color:#c9a5a5;
+    font-family:inherit;
+    font-size:.95rem;
+    line-height:1;
+    width:1.9rem;
+    height:1.9rem;
+    border-radius:50%;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    transition:all .3s;
+    flex-shrink:0;
+  }
+  #back-btn:hover:not(:disabled){
+    background:rgba(120,30,30,.22);
+    border-color:#8b2f2f;
+    color:#f0e0d5;
+    transform:translateX(-2px);
+  }
+  #back-btn:disabled{
+    opacity:.22;
+    cursor:not-allowed;
+  }
+
+  #music-btn{
+    background:transparent;
+    border:1px solid rgba(139,47,47,.35);
+    color:#c9a5a5;
+    width:1.9rem;
+    height:1.9rem;
+    border-radius:50%;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    transition:all .4s;
+    position:relative;
+    flex-shrink:0;
+  }
+  #music-btn:hover{
+    background:rgba(120,30,30,.2);
+    border-color:#8b2f2f;
+    color:#f0e0d5;
+  }
+  #music-btn svg{
+    width:12px;height:12px;
+    transition:opacity .4s;
+  }
+  #music-btn.muted{
+    opacity:.5;
+  }
+  #music-btn.muted svg{
+    opacity:.4;
+  }
+  #music-btn.muted::after{
+    content:'';
+    position:absolute;
+    width:1.4rem;height:1px;
+    background:currentColor;
+    transform:rotate(-45deg);
+    opacity:.85;
+    pointer-events:none;
+  }
+  #music-btn.playing{
+    animation:musicPulse 3.2s ease-in-out infinite;
+  }
+  @keyframes musicPulse{
+    0%,100%{ box-shadow:0 0 0 rgba(180,60,60,0); }
+    50%    { box-shadow:0 0 12px rgba(180,60,60,.5); }
+  }
+
+  #chapter-name{
+    font-size:.95rem;
+    color:#e0b6b6;
+    letter-spacing:.28em;
+    text-shadow:0 0 14px rgba(200,90,90,.45), 0 0 30px rgba(139,47,47,.25);
+    font-weight:500;
+    position:relative;
+    padding-left:1.4em;
+    transition:color .6s, text-shadow .6s;
+  }
+  #chapter-name::before{
+    content:'❖';
+    position:absolute;left:0;top:50%;transform:translateY(-50%);
+    color:#8b2f2f;
+    font-size:.75em;
+    text-shadow:0 0 10px rgba(200,60,60,.55);
+    animation:markPulse 3.2s ease-in-out infinite;
+  }
+  @keyframes markPulse{
+    0%,100%{opacity:.65; transform:translateY(-50%) scale(1);}
+    50%    {opacity:1;   transform:translateY(-50%) scale(1.18);}
+  }
+
+  #flower-mark{
+    font-size:1.65rem;
+    line-height:1;
+    display:inline-flex;align-items:center;justify-content:center;
+    width:2rem;height:2rem;
+    transition:all .9s cubic-bezier(.2,.7,.3,1);
+  }
+  #flower-mark[data-state="empty"]{
+    color:#3a2a2a;text-shadow:0 0 0 transparent;opacity:.7;
+  }
+  #flower-mark[data-state="sprout"]{
+    color:#7aa55e;
+    text-shadow:0 0 16px rgba(122,165,94,.65), 0 0 32px rgba(90,140,60,.3);
+    animation:flowerSprout 2.6s ease-in-out infinite;
+  }
+  #flower-mark[data-state="bud"]{
+    color:#c48ad0;
+    text-shadow:0 0 18px rgba(196,138,208,.7), 0 0 36px rgba(150,80,180,.35);
+    animation:flowerBud 2.2s ease-in-out infinite;
+  }
+  #flower-mark[data-state="bloom"]{
+    color:#f04040;
+    text-shadow:0 0 22px rgba(240,64,64,.85), 0 0 44px rgba(200,30,30,.55), 0 0 70px rgba(160,10,10,.3);
+    animation:flowerBloom 1.6s ease-in-out infinite;
+  }
+  #flower-mark[data-state="wither"]{
+    color:#6a5a5a;
+    text-shadow:0 0 12px rgba(120,90,90,.4);
+    animation:flowerWither 4s ease-in-out infinite;
+  }
+  @keyframes flowerSprout{
+    0%,100%{ opacity:.8; transform:scale(1) rotate(0); }
+    50%    { opacity:1;  transform:scale(1.1) rotate(-4deg); }
+  }
+  @keyframes flowerBud{
+    0%,100%{ opacity:.85; transform:scale(1); }
+    50%    { opacity:1;   transform:scale(1.14); }
+  }
+  @keyframes flowerBloom{
+    0%,100%{ transform:scale(1); text-shadow:0 0 18px rgba(240,64,64,.7), 0 0 36px rgba(200,30,30,.45), 0 0 60px rgba(160,10,10,.25); }
+    50%    { transform:scale(1.2); text-shadow:0 0 28px rgba(255,80,80,1), 0 0 56px rgba(220,40,40,.7), 0 0 90px rgba(180,10,10,.45); }
+  }
+  @keyframes flowerWither{
+    0%,100%{ opacity:.6; }
+    50%    { opacity:.85; }
+  }
+
+  #scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+  #content{max-width:660px;margin:0 auto;padding:2.2rem 1.5rem 6rem;}
+
+  /* ============ CG 显示区 ============ */
+  #cg-display{
+    margin:0 auto 2.2rem;
+    max-width:100%;
+    text-align:center;
+    opacity:0;
+    animation:cgFadeIn 1.8s ease .2s forwards;
+  }
+  @keyframes cgFadeIn{
+    from{opacity:0; transform:translateY(14px) scale(.97); filter:blur(6px);}
+    to  {opacity:1; transform:translateY(0)    scale(1);  filter:blur(0);}
+  }
+  #cg-display svg{
+    display:block;
+    width:100%;
+    max-width:420px;
+    height:auto;
+    margin:0 auto;
+    filter:drop-shadow(0 0 32px rgba(120,30,30,.28));
+  }
+  #cg-display img{
+    display:block;
+    max-width:100%;
+    margin:0 auto;
+    border:1px solid rgba(139,47,47,.3);
+    box-shadow:0 0 40px rgba(120,30,30,.2);
+  }
+  .cg-caption{
+    margin-top:.9rem;
+    font-size:.72rem;
+    color:#5c5750;
+    letter-spacing:.35em;
+    text-indent:.35em;
+  }
+
+  /* ============ 段落 ============ */
+  .para{
+    margin-bottom:1.35em;line-height:2.05;font-size:1.02rem;
+    color:#cbc5bc;opacity:0;
+    animation:fadeUp .9s cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  @keyframes fadeUp{
+    from{opacity:0;transform:translateY(10px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+
+  /* ============ 文本特效 ============ */
+  .fx-flicker{ animation: fadeUp .4s ease forwards, flicker 1.4s ease .4s; }
+  @keyframes flicker{
+    0%,100%{opacity:1;}
+    8%{opacity:.25;} 10%{opacity:.9;}
+    14%{opacity:.4;} 16%{opacity:1;}
+    52%{opacity:.75;} 54%{opacity:1;}
+  }
+  .fx-shake{ animation: fadeUp .5s ease forwards, shake .55s ease-in-out .5s; }
+  @keyframes shake{
+    0%,100%{transform:translate(0,0);}
+    15%{transform:translate(-3px,1px);}
+    30%{transform:translate(3px,-1px);}
+    45%{transform:translate(-2px,2px);}
+    60%{transform:translate(2px,-2px);}
+    75%{transform:translate(-1px,1px);}
+    90%{transform:translate(1px,-1px);}
+  }
+  .fx-glitch{
+    animation: fadeUp .6s ease forwards, glitch 2.2s steps(2) .6s;
+    text-shadow:0 0 0 transparent;
+  }
+  @keyframes glitch{
+    0%{text-shadow:none;color:#cbc5bc;}
+    10%{text-shadow:-2px 0 #b03030, 2px 0 #3048b0;color:#d8c0c0;}
+    20%{text-shadow:2px 0 #b03030, -2px 0 #3048b0;color:#cbc5bc;}
+    30%{text-shadow:-1px 1px #b03030, 1px -1px #3048b0;}
+    45%{text-shadow:none;color:#cbc5bc;}
+    100%{text-shadow:none;color:#cbc5bc;}
+  }
+  .fx-bleed{ animation: fadeUp .9s ease forwards, bleed 3s ease 1s forwards; }
+  @keyframes bleed{
+    0%{color:#cbc5bc;}
+    40%{color:#9a6a6a;}
+    100%{color:#7a2f2f;}
+  }
+  .fx-whisper{
+    font-size:.92rem;color:#7c746c;font-style:italic;
+    letter-spacing:.06em;padding-left:1.4em;
+  }
+  .fx-whisper::before{ content:'“';color:#4a4540;margin-right:.2em; }
+  .fx-whisper::after{ content:'”';color:#4a4540;margin-left:.2em; }
+  .fx-dread{
+    color:#a05a5a;
+    animation: fadeUp .9s ease forwards, dreadPulse 2.6s ease-in-out 1s infinite;
+  }
+  @keyframes dreadPulse{
+    0%,100%{text-shadow:0 0 0 transparent;}
+    50%{text-shadow:0 0 18px rgba(180,40,40,.5);}
+  }
+  .para.chapter-title{
+    text-align:center;color:#9c6b6b;font-size:1.1rem;
+    letter-spacing:.6em;text-indent:.6em;
+    margin:1.5em 0 1.8em;
+  }
+
+  /* ============ 结局染色 ============ */
+  .ending-colored .para{transition:color 1.2s ease;}
+  .ending-colored.ending-reborn .para      { color:#d4b87a; }
+  .ending-colored.ending-symbiosis .para   { color:#a89cc8; }
+  .ending-colored.ending-assimilate .para  { color:#a85a5a; }
+  .ending-colored.ending-oblivion .para    { color:#858585; }
+  .ending-colored.ending-eternalnight .para{ color:#c83232; }
+
+  .ending-mark{
+    text-align:center;margin:3.4rem 0 1.6rem;
+    font-size:1.02rem;letter-spacing:.6em;text-indent:.6em;
+    animation:fadeUp 1.2s ease forwards;opacity:0;color:inherit;
+  }
+  .ending-colored.ending-reborn .ending-mark{color:#e8c98a;text-shadow:0 0 30px rgba(212,184,122,.45);}
+  .ending-colored.ending-symbiosis .ending-mark{color:#c0b4dc;text-shadow:0 0 30px rgba(168,156,200,.45);}
+  .ending-colored.ending-assimilate .ending-mark{color:#c07070;text-shadow:0 0 30px rgba(168,90,90,.45);}
+  .ending-colored.ending-oblivion .ending-mark{color:#909090;text-shadow:0 0 30px rgba(133,133,133,.3);}
+  .ending-colored.ending-eternalnight .ending-mark{
+    color:#e03030;animation:bloodPulse 2.4s ease-in-out infinite;
+    text-shadow:0 0 40px rgba(200,50,50,.6);
+  }
+  @keyframes bloodPulse{
+    0%,100%{ text-shadow:0 0 30px rgba(200,50,50,.5); }
+    50%    { text-shadow:0 0 60px rgba(220,40,40,.95), 0 0 90px rgba(180,20,20,.5); }
+  }
+
+  /* ============ 继续按钮 ============ */
+  .next-btn{
+    display:block;width:100%;text-align:center;
+    margin:2rem auto .5rem;padding:1rem 1.4rem;
+    background:transparent;
+    border:1px solid rgba(139,47,47,.35);
+    color:#c9a5a5;font-family:inherit;font-size:.92rem;
+    letter-spacing:.4em;text-indent:.4em;
+    cursor:pointer;transition:all .3s;
+    opacity:0;animation:fadeUp .6s ease .35s forwards;
+  }
+  .next-btn:hover,.next-btn:active{
+    background:rgba(120,30,30,.15);
+    border-color:#8b2f2f;color:#f0e0d5;
+  }
+  .next-btn .arrow{
+    display:inline-block;margin-left:.4em;
+    transition:transform .35s;
+  }
+  .next-btn:hover .arrow{transform:translateX(6px);}
+
+  /* ============ 选项 ============ */
+  #choices{margin-top:2.4rem;}
+  .choice{
+    display:block;width:100%;text-align:left;
+    background:transparent;border:none;
+    border-left:2px solid #3a2020;
+    color:#a8a29a;font-family:inherit;font-size:.98rem;
+    padding:.95rem 1.2rem;margin-bottom:.85rem;
+    cursor:pointer;transition:all .3s;line-height:1.75;
+    opacity:0;animation:fadeUp .7s ease forwards;
+  }
+  .choice .inner{
+    display:block;font-size:.82rem;color:#6a635c;
+    margin-top:.35em;font-style:italic;letter-spacing:.03em;
+  }
+  .choice:hover .inner,.choice:active .inner{color:#9c8a80;}
+  .choice:hover,.choice:active{
+    border-left-color:#c04040;color:#e6ddd2;
+    background:linear-gradient(90deg, rgba(120,30,30,.12), transparent);
+    padding-left:1.7rem;
+  }
+  .choice.special{border-left-color:#6b3030;color:#c9a5a5;}
+  .choice.special:hover{border-left-color:#c44;color:#f0e0d5;}
+
+  /* ============ 结局操作按钮 ============ */
+  .restart-btn, .home-btn{
+    display:block;margin:1.4rem auto 0;
+    padding:1rem 3rem;background:transparent;
+    border:1px solid currentColor;
+    color:inherit;font-family:inherit;font-size:.95rem;
+    letter-spacing:.42em;text-indent:.42em;cursor:pointer;
+    opacity:0;animation:fadeUp 1s ease .9s forwards;
+    transition:background .35s, box-shadow .35s;
+  }
+  .restart-btn{ margin-top:2.2rem; }
+  .restart-btn:hover,.restart-btn:active,
+  .home-btn:hover,.home-btn:active{
+    background:rgba(255,255,255,.06);
+    box-shadow:0 0 24px rgba(255,255,255,.08);
+  }
+  .home-btn{ animation-delay:1.15s; }
+
+  ::-webkit-scrollbar{width:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:#2a2422;border-radius:3px;}
+
+  @media (max-width:520px){
+    .para{font-size:.98rem;line-height:2;}
+    h1{font-size:1.6rem;letter-spacing:.35em;text-indent:.35em;}
+    #content{padding:1.6rem 1.2rem 5rem;}
+    .restart-btn, .home-btn{font-size:.85rem;padding:.9rem 2.2rem;}
+    .next-btn{font-size:.85rem;padding:.9rem 1rem;}
+    #chapter-name{font-size:.82rem;letter-spacing:.22em;}
+    #flower-mark{font-size:1.4rem;width:1.7rem;height:1.7rem;}
+    #cg-display svg{max-width:300px;}
+    .cg-caption{font-size:.66rem;}
+    #back-btn,#music-btn{width:1.7rem;height:1.7rem;font-size:.85rem;}
+    #music-btn svg{width:10px;height:10px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="title-screen">
+  <div class="title-inner">
+    <span class="flower-mark">✿</span>
+    <h1>静依的花</h1>
+    <p class="subtitle">一个关于目光、沉默与盛开的故事</p>
+    <button id="start-btn">开始</button>
+    <p class="hint">点击屏幕或“继续”按钮推进文本</p>
+    <div id="endings-list"></div>
+  </div>
+</div>
+
+<div id="game" class="hidden">
+  <header id="hud">
+    <div id="hud-left">
+      <button id="back-btn" title="回到上一节点" aria-label="回到上一节点">‹</button>
+      <span id="chapter-name">序章</span>
+    </div>
+    <div id="hud-right">
+      <button id="music-btn" class="playing" title="背景音乐" aria-label="背景音乐">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/>
+        </svg>
+      </button>
+      <span id="flower-mark" data-state="empty">◌</span>
+    </div>
+  </header>
+  <main id="scroll">
+    <div id="content">
+      <div id="cg-display"></div>
+      <div id="text"></div>
+      <div id="choices"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   ★ 音频系统 · 中国风双轨音乐 + 音效 ★
+   五声音阶 · 古琴/笛子/磬 三种音色 · 动态切换
+============================================================ */
+
+/* ---------- 音效 ---------- */
+const SFX = {
+  ctx: null,
+  outGain: null,
+
+  init(ctx) {
+    this.ctx = ctx;
+    this.outGain = ctx.createGain();
+    this.outGain.gain.value = 0.55;
+    this.outGain.connect(ctx.destination);
+  },
+
+  /* 木鱼 · 点击选项 */
+  click() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(640, t);
+    osc.frequency.exponentialRampToValueAtTime(320, t + 0.06);
+
+    filter.type = 'lowpass';
+    filter.frequency.value = 1400;
+    filter.Q.value = 2;
+
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.18, t + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.outGain);
+    osc.start(t);
+    osc.stop(t + 0.11);
+  },
+
+  /* 轻柔翻页 · 推进文本 */
+  advance() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.value = 1320;
+
+    gain.gain.setValueAtTime(0.028, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+
+    osc.connect(gain);
+    gain.connect(this.outGain);
+    osc.start(t);
+    osc.stop(t + 0.07);
+  },
+
+  /* 磬 · 章节进入 / 关键节点 */
+  chime() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const base = 528;
+    const dur = 2.4;
+    const components = [1, 2.756, 5.404];
+    const weights = [1, 0.32, 0.16];
+
+    const outGain = this.ctx.createGain();
+    outGain.gain.setValueAtTime(0, t);
+    outGain.gain.linearRampToValueAtTime(0.16, t + 0.008);
+    outGain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    outGain.connect(this.outGain);
+
+    components.forEach((mult, i) => {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = base * mult;
+      const g = this.ctx.createGain();
+      g.gain.value = weights[i];
+      osc.connect(g);
+      g.connect(outGain);
+      osc.start(t);
+      osc.stop(t + dur + 0.1);
+    });
+  },
+
+  /* 花开 · 五声上行琶音 */
+  bloom() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const notes = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50];
+    notes.forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const when = t + i * 0.09;
+      g.gain.setValueAtTime(0, when);
+      g.gain.linearRampToValueAtTime(0.11, when + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.001, when + 1.4);
+      osc.connect(g);
+      g.connect(this.outGain);
+      osc.start(when);
+      osc.stop(when + 1.5);
+    });
+  },
+
+  /* 故障音 · glitch */
+  glitch() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const bufSize = this.ctx.sampleRate * 0.15;
+    const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 2);
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 800;
+    filter.Q.value = 5;
+    const g = this.ctx.createGain();
+    g.gain.value = 0.08;
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(this.outGain);
+    src.start(t);
+  }
+};
+
+/* ---------- 背景音乐 ---------- */
+const Music = {
+  ctx: null,
+  masterGain: null,
+  reverbInput: null,
+  isPlaying: false,
+  currentTrack: 'A',
+  chordIndex: 0,
+  nextTimeout: null,
+  _pendingTrack: null,
+
+  /* 五声音阶频率表 */
+  scales: {
+    /* A 羽调式（对应 A 小调）：A C D E G */
+    A: [220.00, 261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99, 880.00],
+    /* C 宫调式（对应 C 大调）：C D E G A */
+    B: [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99, 880.00, 1046.50]
+  },
+
+  /* 和弦进行（8 小节循环，低音 + 琶音，全部在五声音阶内） */
+  progressions: {
+    A: [
+      { bass: 110.00, notes: [220.00, 261.63, 329.63] },  // Am
+      { bass:  98.00, notes: [196.00, 293.66, 392.00] },  // G
+      { bass:  82.41, notes: [164.81, 196.00, 220.00] },  // Em
+      { bass:  73.42, notes: [146.83, 220.00, 293.66] },  // Dm
+      { bass: 110.00, notes: [220.00, 261.63, 329.63] },  // Am
+      { bass:  73.42, notes: [146.83, 220.00, 440.00] },  // Dm 高音
+      { bass: 130.81, notes: [261.63, 329.63, 392.00] },  // C
+      { bass: 110.00, notes: [220.00, 261.63, 329.63] }   // Am
+    ],
+    B: [
+      { bass: 130.81, notes: [261.63, 329.63, 392.00] },  // C
+      { bass: 110.00, notes: [220.00, 261.63, 329.63] },  // Am
+      { bass:  98.00, notes: [196.00, 293.66, 392.00] },  // G
+      { bass:  82.41, notes: [164.81, 196.00, 261.63] },  // Em
+      { bass: 130.81, notes: [261.63, 329.63, 392.00] },  // C
+      { bass: 110.00, notes: [220.00, 261.63, 329.63] },  // Am
+      { bass:  98.00, notes: [196.00, 293.66, 392.00] },  // G
+      { bass: 130.81, notes: [261.63, 329.63, 523.25] }   // C 高
+    ]
+  },
+
+  init() {
+    if (this.ctx) return true;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    try {
+      this.ctx = new AC();
+    } catch(e) { return false; }
+
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.gain.value = 0;
+    this.masterGain.connect(this.ctx.destination);
+
+    /* 双延迟混响 —— 制造空旷的回响 */
+    const delay1 = this.ctx.createDelay(3);
+    delay1.delayTime.value = 0.42;
+    const delay2 = this.ctx.createDelay(3);
+    delay2.delayTime.value = 0.58;
+    const fb1 = this.ctx.createGain();
+    fb1.gain.value = 0.32;
+    const fb2 = this.ctx.createGain();
+    fb2.gain.value = 0.26;
+    delay1.connect(fb1);
+    fb1.connect(delay2);
+    delay2.connect(fb2);
+    fb2.connect(delay1);
+
+    const wetGain = this.ctx.createGain();
+    wetGain.gain.value = 0.45;
+    delay1.connect(wetGain);
+    delay2.connect(wetGain);
+    wetGain.connect(this.masterGain);
+
+    this.reverbInput = this.ctx.createGain();
+    this.reverbInput.gain.value = 1;
+    this.reverbInput.connect(delay1);
+    this.reverbInput.connect(delay2);
+
+    SFX.init(this.ctx);
+    return true;
+  },
+
+  /* ==== 音色 1 · 古琴拨弦 ==== */
+  playPluck(freq, when, dur, vol) {
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc1.type = 'triangle';
+    osc1.frequency.value = freq;
+    osc2.type = 'sine';
+    osc2.frequency.value = freq * 2.005;
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(Math.max(freq * 6, 2000), when);
+    filter.frequency.exponentialRampToValueAtTime(Math.max(freq * 2, 700), when + dur);
+    filter.Q.value = 1.2;
+
+    gain.gain.setValueAtTime(0, when);
+    gain.gain.linearRampToValueAtTime(vol, when + 0.008);
+    gain.gain.exponentialRampToValueAtTime(vol * 0.3, when + dur * 0.32);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    gain.connect(this.reverbInput);
+
+    osc1.start(when);
+    osc2.start(when);
+    osc1.stop(when + dur + 0.05);
+    osc2.stop(when + dur + 0.05);
+  },
+
+  /* ==== 音色 2 · 笛子 ==== */
+  playFlute(freq, when, dur, vol) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+    const vibrato = this.ctx.createOscillator();
+    const vibGain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+
+    vibrato.type = 'sine';
+    vibrato.frequency.value = 5.2;
+    vibGain.gain.value = freq * 0.004;
+    vibrato.connect(vibGain);
+    vibGain.connect(osc.frequency);
+
+    filter.type = 'lowpass';
+    filter.frequency.value = Math.max(freq * 3, 1500);
+    filter.Q.value = 0.5;
+
+    gain.gain.setValueAtTime(0, when);
+    gain.gain.linearRampToValueAtTime(vol, when + dur * 0.22);
+    gain.gain.linearRampToValueAtTime(vol * 0.85, when + dur * 0.65);
+    gain.gain.linearRampToValueAtTime(0, when + dur);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    gain.connect(this.reverbInput);
+
+    vibrato.start(when);
+    osc.start(when);
+    vibrato.stop(when + dur + 0.05);
+    osc.stop(when + dur + 0.05);
+  },
+
+  /* ==== 音色 3 · 磬/铃（装饰性） ==== */
+  playBell(freq, when, vol) {
+    const dur = 3.2;
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const osc3 = this.ctx.createOscillator();
+    const g1 = this.ctx.createGain();
+    const g2 = this.ctx.createGain();
+    const g3 = this.ctx.createGain();
+
+    osc1.type = 'sine';
+    osc1.frequency.value = freq;
+    osc2.type = 'sine';
+    osc2.frequency.value = freq * 2.756;
+    osc3.type = 'sine';
+    osc3.frequency.value = freq * 5.404;
+
+    g1.gain.value = 1;
+    g2.gain.value = 0.3;
+    g3.gain.value = 0.15;
+
+    osc1.connect(g1);
+    osc2.connect(g2);
+    osc3.connect(g3);
+
+    const outGain = this.ctx.createGain();
+    g1.connect(outGain);
+    g2.connect(outGain);
+    g3.connect(outGain);
+
+    outGain.gain.setValueAtTime(0, when);
+    outGain.gain.linearRampToValueAtTime(vol, when + 0.006);
+    outGain.gain.exponentialRampToValueAtTime(vol * 0.4, when + 0.35);
+    outGain.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+
+    outGain.connect(this.masterGain);
+    outGain.connect(this.reverbInput);
+
+    osc1.start(when);
+    osc2.start(when);
+    osc3.start(when);
+    osc1.stop(when + dur + 0.1);
+    osc2.stop(when + dur + 0.1);
+    osc3.stop(when + dur + 0.1);
+  },
+
+  /* ==== 一个小节 ==== */
+  playBar() {
+    if (!this.ctx || !this.isPlaying) return;
+
+    /* 曲目切换（延迟到小节边界，避免突兀） */
+    if (this._pendingTrack && this._pendingTrack !== this.currentTrack) {
+      this.currentTrack = this._pendingTrack;
+      this._pendingTrack = null;
+      this.chordIndex = 0;
+    }
+
+    const t = this.ctx.currentTime + 0.02;
+    const progression = this.progressions[this.currentTrack];
+    const chord = progression[this.chordIndex % progression.length];
+    const scale = this.scales[this.currentTrack];
+
+    /* 1. 低音 · 古琴 */
+    this.playPluck(chord.bass, t, 4.4, 0.09);
+    this.playPluck(chord.bass * 2, t + 0.02, 3.8, 0.04);
+
+    /* 2. 琶音 · 古琴 */
+    chord.notes.forEach((freq, i) => {
+      const when = t + i * 0.42 + Math.random() * 0.05;
+      const dur = 2.6 - i * 0.1;
+      const vol = 0.085 - i * 0.01;
+      this.playPluck(freq, when, dur, vol);
+    });
+
+    /* 3. 随机旋律 · 笛子（每次不同，避免重复感） */
+    const noteCount = 3 + Math.floor(Math.random() * 3);
+    let cursor = t + 0.9;
+    let lastIdx = -1;
+    for (let i = 0; i < noteCount; i++) {
+      let idx;
+      do {
+        idx = Math.floor(Math.random() * scale.length);
+      } while (idx === lastIdx && scale.length > 1);
+      lastIdx = idx;
+
+      const note = scale[idx];
+      const dur = 0.75 + Math.random() * 1.1;
+      const vol = 0.042 + Math.random() * 0.025;
+
+      this.playFlute(note, cursor, dur, vol);
+      cursor += 0.55 + Math.random() * 0.6;
+      if (cursor > t + 3.3) break;
+    }
+
+    /* 4. 偶尔的磬/铃装饰 */
+    if (Math.random() < 0.35) {
+      const bellIdx = 7 + Math.floor(Math.random() * 3);
+      const bellNote = scale[bellIdx % scale.length];
+      this.playBell(bellNote, t + 1.4 + Math.random() * 1.6, 0.032);
+    }
+
+    /* 5. 偶尔的高八度回声 */
+    if (Math.random() < 0.25) {
+      const echoIdx = Math.floor(Math.random() * 5);
+      const echoNote = scale[echoIdx] * 2;
+      this.playFlute(echoNote, t + 2.8 + Math.random() * 0.4, 1.2, 0.028);
+    }
+
+    this.chordIndex++;
+    this.nextTimeout = setTimeout(() => this.playBar(), 3600);
+  },
+
+  setTrack(track) {
+    if (track === this.currentTrack && !this._pendingTrack) return;
+    this._pendingTrack = track;
+  },
+
+  start() {
+    if (!this.init()) return;
+    if (this.isPlaying) return;
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+    this.isPlaying = true;
+
+    const now = this.ctx.currentTime;
+    const g = this.masterGain.gain;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(Math.max(g.value, 0), now);
+    g.linearRampToValueAtTime(0.2, now + 3.0);
+
+    this.chordIndex = 0;
+    this.playBar();
+  },
+
+  stop() {
+    if (!this.ctx || !this.isPlaying) return;
+    this.isPlaying = false;
+    if (this.nextTimeout) {
+      clearTimeout(this.nextTimeout);
+      this.nextTimeout = null;
+    }
+    const now = this.ctx.currentTime;
+    const g = this.masterGain.gain;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(g.value, now);
+    g.linearRampToValueAtTime(0, now + 1.2);
+  },
+
+  toggle() {
+    if (this.isPlaying) this.stop();
+    else this.start();
+  }
+};
+
+/* ============================================================
+   状态
+============================================================ */
+const state = {
+  trust: 0, guilt: 0,
+  flower: 'empty',
+  flags: {},
+  current: null
+};
+
+let history = [];
+let replayMode = false;
+
+/* ============================================================
+   CG 库（16 张）
+============================================================ */
+const CGS = {
+
+'scent': {
+  caption: '气 味',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="scentBg" cx="50%" cy="50%" r="75%">
+        <stop offset="0%" stop-color="#180a10"/>
+        <stop offset="100%" stop-color="#050308"/>
+      </radialGradient>
+      <radialGradient id="scentGlow" cx="50%" cy="50%">
+        <stop offset="0%" stop-color="#c84a6a" stop-opacity="0.38"/>
+        <stop offset="55%" stop-color="#7a2038" stop-opacity="0.14"/>
+        <stop offset="100%" stop-color="#7a2038" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="260" fill="url(#scentBg)"/>
+    <ellipse cx="200" cy="140" rx="130" ry="95" fill="url(#scentGlow)"/>
+    <g stroke="#c84a6a" stroke-width="0.9" fill="none" opacity="0.45">
+      <path d="M 138 230 Q 148 180 142 138 Q 136 98 152 62"/>
+      <path d="M 200 240 Q 206 180 200 128 Q 194 86 206 54"/>
+      <path d="M 262 230 Q 252 180 258 138 Q 264 98 248 62"/>
+    </g>
+    <circle cx="200" cy="130" r="8" fill="#c84a6a" opacity="0.35"/>
+    <circle cx="200" cy="130" r="3" fill="#ffa0b0" opacity="0.9"/>
+    <circle cx="200" cy="130" r="1.5" fill="#ffffff" opacity="0.8"/>
+  </svg>`
+},
+
+'empty_pot': {
+  caption: '空 花 盆',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bgPot" cx="50%" cy="40%" r="75%">
+        <stop offset="0%"  stop-color="#1a1012"/>
+        <stop offset="100%" stop-color="#08070a"/>
+      </radialGradient>
+      <linearGradient id="potBody" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="#5a3a28"/>
+        <stop offset="55%" stop-color="#3a2018"/>
+        <stop offset="100%" stop-color="#1a0e08"/>
+      </linearGradient>
+      <radialGradient id="soilG" cx="50%" cy="50%">
+        <stop offset="0%"  stop-color="#2a1a10"/>
+        <stop offset="100%" stop-color="#0e0806"/>
+      </radialGradient>
+      <radialGradient id="soilGlow" cx="50%" cy="0%">
+        <stop offset="0%" stop-color="#c86a4a" stop-opacity="0.5"/>
+        <stop offset="100%" stop-color="#c86a4a" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="260" fill="url(#bgPot)"/>
+    <g transform="translate(200 155)">
+      <path d="M -72 -40 L 72 -40 L 60 65 Q 0 78 -60 65 Z" fill="url(#potBody)" stroke="#1a0e08" stroke-width="1.5"/>
+      <ellipse cx="0" cy="-40" rx="74" ry="14" fill="#2a1810" stroke="#4a2a1c" stroke-width="1.2"/>
+      <ellipse cx="0" cy="-38" rx="66" ry="10" fill="url(#soilG)"/>
+      <ellipse cx="0" cy="-38" rx="40" ry="6" fill="url(#soilGlow)"/>
+      <path d="M -68 -32 Q 0 -20 68 -32" stroke="#7a4a2a" stroke-width="0.9" fill="none" opacity="0.55"/>
+      <path d="M -64 -22 Q 0 -10 64 -22" stroke="#7a4a2a" stroke-width="0.7" fill="none" opacity="0.35"/>
+      <path d="M -60 -12 Q 0 0 60 -12" stroke="#7a4a2a" stroke-width="0.5" fill="none" opacity="0.2"/>
+    </g>
+    <ellipse cx="200" cy="117" rx="36" ry="4" fill="#c86a4a" opacity="0.14"/>
+    <ellipse cx="200" cy="117" rx="16" ry="2" fill="#ff8a6a" opacity="0.28"/>
+  </svg>`
+},
+
+'eyes': {
+  caption: '无 处 不 在 的 目 光',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bgEyes" cx="50%" cy="50%" r="80%">
+        <stop offset="0%"  stop-color="#170f13"/>
+        <stop offset="100%" stop-color="#050408"/>
+      </radialGradient>
+      <radialGradient id="iris" cx="50%" cy="50%">
+        <stop offset="0%"  stop-color="#d8c0b0"/>
+        <stop offset="60%" stop-color="#3a2a28"/>
+        <stop offset="100%" stop-color="#0a0808"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="260" fill="url(#bgEyes)"/>
+    <ellipse cx="200" cy="140" rx="30" ry="48" fill="none" stroke="#2a1e20" stroke-width="1" stroke-dasharray="3 4" opacity="0.55"/>
+    <g fill="url(#iris)">
+      <ellipse cx="70"  cy="58"  rx="26" ry="11"/>
+      <ellipse cx="150" cy="38"  rx="24" ry="10"/>
+      <ellipse cx="250" cy="38"  rx="24" ry="10"/>
+      <ellipse cx="330" cy="58"  rx="26" ry="11"/>
+      <ellipse cx="46"  cy="140" rx="28" ry="12"/>
+      <ellipse cx="354" cy="140" rx="28" ry="12"/>
+      <ellipse cx="70"  cy="222" rx="26" ry="11"/>
+      <ellipse cx="150" cy="242" rx="24" ry="10"/>
+      <ellipse cx="250" cy="242" rx="24" ry="10"/>
+      <ellipse cx="330" cy="222" rx="26" ry="11"/>
+    </g>
+    <g fill="#050408">
+      <circle cx="70"  cy="58"  r="5"/>
+      <circle cx="150" cy="38"  r="4.5"/>
+      <circle cx="250" cy="38"  r="4.5"/>
+      <circle cx="330" cy="58"  r="5"/>
+      <circle cx="46"  cy="140" r="5.5"/>
+      <circle cx="354" cy="140" r="5.5"/>
+      <circle cx="70"  cy="222" r="5"/>
+      <circle cx="150" cy="242" r="4.5"/>
+      <circle cx="250" cy="242" r="4.5"/>
+      <circle cx="330" cy="222" r="5"/>
+    </g>
+    <g stroke="#4a2020" stroke-width="0.5" opacity="0.45">
+      <line x1="70"  y1="58"  x2="188" y2="122"/>
+      <line x1="150" y1="38"  x2="192" y2="115"/>
+      <line x1="250" y1="38"  x2="208" y2="115"/>
+      <line x1="330" y1="58"  x2="212" y2="122"/>
+      <line x1="46"  y1="140" x2="172" y2="140"/>
+      <line x1="354" y1="140" x2="228" y2="140"/>
+      <line x1="70"  y1="222" x2="188" y2="158"/>
+      <line x1="150" y1="242" x2="192" y2="165"/>
+      <line x1="250" y1="242" x2="208" y2="165"/>
+      <line x1="330" y1="222" x2="212" y2="158"/>
+    </g>
+  </svg>`
+},
+
+'rift': {
+  caption: '裂 痕',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bgRift" cx="50%" cy="50%" r="80%">
+        <stop offset="0%"  stop-color="#180e14"/>
+        <stop offset="100%" stop-color="#050308"/>
+      </radialGradient>
+      <linearGradient id="personL" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#4a2a2a"/>
+        <stop offset="100%" stop-color="#1a0e0e"/>
+      </linearGradient>
+      <linearGradient id="personR" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#2a2a3a"/>
+        <stop offset="100%" stop-color="#0e0e1a"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="260" fill="url(#bgRift)"/>
+    <g stroke="#c83030" stroke-width="0.9" fill="none" opacity="0.7">
+      <path d="M 200 20 L 196 70 L 204 110 L 192 160 L 206 200 L 198 240"/>
+    </g>
+    <g stroke="#c83030" stroke-width="0.5" fill="none" opacity="0.4">
+      <path d="M 196 70 L 180 60"/>
+      <path d="M 204 110 L 224 100"/>
+      <path d="M 192 160 L 176 172"/>
+      <path d="M 206 200 L 222 210"/>
+    </g>
+    <g transform="translate(120 130)" fill="url(#personL)">
+      <ellipse cx="0" cy="-30" rx="18" ry="22"/>
+      <path d="M -22 5 Q 0 -2 22 5 L 28 60 Q 0 68 -28 60 Z"/>
+    </g>
+    <g transform="translate(280 130)" fill="url(#personR)">
+      <ellipse cx="0" cy="-30" rx="16" ry="20"/>
+      <path d="M -20 5 Q 0 -2 20 5 L 26 60 Q 0 68 -26 60 Z"/>
+    </g>
+    <ellipse cx="200" cy="200" rx="34" ry="4" fill="#3a0808" opacity="0.6"/>
+  </svg>`
+},
+
+'fall': {
+  caption: '坠 落',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bgFall" cx="50%" cy="0%" r="90%">
+        <stop offset="0%"  stop-color="#1a0a10"/>
+        <stop offset="100%" stop-color="#030204"/>
+      </radialGradient>
+      <linearGradient id="figureF" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#5a3030"/>
+        <stop offset="100%" stop-color="#1a0808"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="260" fill="url(#bgFall)"/>
+    <ellipse cx="200" cy="20" rx="70" ry="18" fill="#c84a4a" opacity="0.18"/>
+    <ellipse cx="200" cy="20" rx="40" ry="10" fill="#ff8a8a" opacity="0.12"/>
+    <g transform="translate(200 150) rotate(-8)" fill="url(#figureF)">
+      <ellipse cx="0" cy="-38" rx="15" ry="19"/>
+      <path d="M -17 -20 Q 0 -26 17 -20 L 22 40 Q 0 48 -22 40 Z"/>
+      <path d="M -17 -8 Q -34 4 -40 20" stroke="url(#figureF)" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M 17 -8 Q 34 4 40 20" stroke="url(#figureF)" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M -14 40 Q -22 62 -20 82" stroke="url(#figureF)" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M 14 40 Q 22 62 20 82" stroke="url(#figureF)" stroke-width="6" fill="none" stroke-linecap="round"/>
+    </g>
+    <g stroke="#5a3030" stroke-width="0.7" opacity="0.4" fill="none">
+      <path d="M 200 60 L 200 90"/>
+      <path d="M 195 55 L 195 85"/>
+      <path d="M 205 55 L 205 85"/>
+    </g>
+    <ellipse cx="200" cy="255" rx="180" ry="12" fill="#000000" opacity="0.85"/>
+  </svg>`
+},
+
+'sprout': {
+  caption: '嫩 芽',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bgSprout" cx="50%" cy="70%" r="80%">
+        <stop offset="0%"  stop-color="#141a12"/>
+        <stop offset="100%" stop-color="#060708"/>
+      </radialGradient>
+      <linearGradient id="soilSpr" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="#3a2418"/>
+        <stop offset="100%" stop-color="#180e08"/>
+      </linearGradient>
+      <radialGradient id="sproutGlow" cx="50%" cy="40%">
+        <stop offset="0%" stop-color="#7aa55e" stop-opacity="0.5"/>
+        <stop offset="100%" stop-color="#7aa55e" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="260" fill="url(#bgSprout)"/>
+    <circle cx="200" cy="130" r="90" fill="url(#sproutGlow)"/>
+    <path d="M 40 190 Q 200 168 360 190 L 360 240 L 40 240 Z" fill="url(#soilSpr)"/>
+    <g stroke="#2a1a10" stroke-width="0.6" opacity="0.7" fill="none">
+      <path d="M 180 200 L 175 215 L 185 228"/>
+      <path d="M 220 200 L 228 215 L 220 228"/>
+      <path d="M 200 198 L 200 232"/>
+    </g>
+    <path d="M 200 190 Q 200 150 200 120" stroke="#4a7a2a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M 200 160 Q 178 148 170 162 Q 188 172 200 162" fill="#5a8a3a"/>
+    <path d="M 200 145 Q 222 133 230 147 Q 212 157 200 147" fill="#5a8a3a"/>
+    <ellipse cx="200" cy="118" rx="5" ry="7" fill="#7aa55e" opacity="0.85"/>
+    <ellipse cx="200" cy="200" rx="30" ry="3" fill="#c86a4a" opacity="0.25"/>
+  </svg>`
+},
+
+'bud': {
+  caption: '花 苞',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bgBud" cx="50%" cy="80%" r="85%">
+        <stop offset="0%"  stop-color="#1a1418"/>
+        <stop offset="100%" stop-color="#07060a"/>
+      </radialGradient>
+      <linearGradient id="stem" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="#4a6a3a"/>
+        <stop offset="100%" stop-color="#1e2a18"/>
+      </linearGradient>
+      <radialGradient id="budG" cx="50%" cy="40%">
+        <stop offset="0%"  stop-color="#d0b0d8"/>
+        <stop offset="50%" stop-color="#7a5a88"/>
+        <stop offset="100%" stop-color="#3a2a44"/>
+      </radialGradient>
+      <radialGradient id="budGlow" cx="50%" cy="50%">
+        <stop offset="0%"  stop-color="#c48ad0" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="#c48ad0" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="260" fill="url(#bgBud)"/>
+    <circle cx="200" cy="115" r="100" fill="url(#budGlow)"/>
+    <path d="M 200 235 Q 195 180 200 138" stroke="url(#stem)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M 200 205 Q 168 195 158 210 Q 180 222 200 212" fill="#2a3a20" opacity="0.9"/>
+    <path d="M 200 188 Q 232 180 242 195 Q 220 205 200 195" fill="#2a3a20" opacity="0.9"/>
+    <ellipse cx="200" cy="118" rx="22" ry="36" fill="url(#budG)"/>
+    <path d="M 200 84 Q 188 100 200 152" stroke="#5a3a68" stroke-width="0.9" fill="none" opacity="0.65"/>
+    <path d="M 200 84 Q 212 100 200 152" stroke="#5a3a68" stroke-width="0.9" fill="none" opacity="0.65"/>
+    <path d="M 200 84 Q 200 100 200 152" stroke="#5a3a68" stroke-width="0.7" fill="none" opacity="0.5"/>
+    <path d="M 176 145 Q 200 160 224 145" stroke="#3a4a28" stroke-width="2" fill="none"/>
+    <path d="M 180 148 Q 195 162 200 165" stroke="#3a4a28" stroke-width="1.4" fill="none"/>
+    <path d="M 220 148 Q 205 162 200 165" stroke="#3a4a28" stroke-width="1.4" fill="none"/>
+    <ellipse cx="192" cy="102" rx="5" ry="9" fill="#ffffff" opacity="0.15"/>
+  </svg>`
+},
+
+'night': {
+  caption: '夜 的 教 室',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bgNight" cx="50%" cy="40%" r="80%">
+        <stop offset="0%"  stop-color="#101a28"/>
+        <stop offset="100%" stop-color="#04050a"/>
+      </radialGradient>
+      <linearGradient id="moonlight" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#c8d4e8" stop-opacity="0.45"/>
+        <stop offset="100%" stop-color="#c8d4e8" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="260" fill="url(#bgNight)"/>
+    <g stroke="#2a2838" stroke-width="2" fill="none">
+      <rect x="70" y="30" width="260" height="180"/>
+      <line x1="200" y1="30" x2="200" y2="210"/>
+      <line x1="70" y1="120" x2="330" y2="120"/>
+    </g>
+    <path d="M 200 30 L 320 210 L 80 210 Z" fill="url(#moonlight)" opacity="0.35"/>
+    <ellipse cx="200" cy="40" rx="18" ry="6" fill="#e8ecf8" opacity="0.5"/>
+    <rect x="60" y="208" width="280" height="4" fill="#2a2838"/>
+    <g transform="translate(280 196)">
+      <path d="M -14 -10 L 14 -10 L 11 14 Q 0 17 -11 14 Z" fill="#2a1810"/>
+      <ellipse cx="0" cy="-10" rx="15" ry="3" fill="#1a0e08"/>
+      <ellipse cx="0" cy="-10" rx="12" ry="2" fill="#0a0604"/>
+    </g>
+    <g transform="translate(140 150)" fill="#050408" opacity="0.92">
+      <ellipse cx="0" cy="-30" rx="18" ry="22"/>
+      <path d="M -22 5 Q 0 -2 22 5 L 28 70 Q 0 78 -28 70 Z"/>
+    </g>
+    <g transform="translate(180 240) rotate(-15)">
+      <rect x="-14" y="-1" width="28" height="2.5" fill="#8a8a92"/>
+      <rect x="14" y="-3" width="10" height="6" rx="1" fill="#3a2a2a"/>
+    </g>
+    <circle cx="196" cy="243" r="1.5" fill="#a02020" opacity="0.7"/>
+  </svg>`
+},
+
+'knife': {
+  caption: '小 刀 与 土 壤',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bgKnife" cx="50%" cy="60%" r="80%">
+        <stop offset="0%"  stop-color="#1a0a0a"/>
+        <stop offset="100%" stop-color="#050304"/>
+      </radialGradient>
+      <linearGradient id="blade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#e0e0e8"/>
+        <stop offset="55%" stop-color="#8a8a92"/>
+        <stop offset="100%" stop-color="#3a3a42"/>
+      </linearGradient>
+      <linearGradient id="handle" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#5a3a2a"/>
+        <stop offset="100%" stop-color="#2a1810"/>
+      </linearGradient>
+      <radialGradient id="bloodG" cx="50%" cy="50%">
+        <stop offset="0%" stop-color="#a01010" stop-opacity="0.85"/>
+        <stop offset="100%" stop-color="#5a0808" stop-opacity="0.4"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="260" fill="url(#bgKnife)"/>
+    <ellipse cx="200" cy="200" rx="200" ry="50" fill="#160808"/>
+    <ellipse cx="200" cy="200" rx="130" ry="32" fill="url(#bloodG)"/>
+    <ellipse cx="180" cy="196" rx="80" ry="20" fill="#7a0808" opacity="0.6"/>
+    <ellipse cx="240" cy="204" rx="50" ry="14" fill="#5a0808" opacity="0.5"/>
+    <g transform="translate(200 170) rotate(-32)">
+      <path d="M -80 0 L 20 -6 L 30 0 L 20 6 L -80 0 Z" fill="url(#blade)" stroke="#2a2a30" stroke-width="0.6"/>
+      <path d="M -80 0 L 20 -6 L 10 -2 L -75 -1 Z" fill="#ffffff" opacity="0.18"/>
+      <rect x="30" y="-6" width="46" height="12" rx="2" fill="url(#handle)" stroke="#0a0604" stroke-width="0.6"/>
+      <line x1="40" y1="-4" x2="40" y2="4" stroke="#1a0e08" stroke-width="0.8"/>
+      <line x1="50" y1="-4" x2="50" y2="4" stroke="#1a0e08" stroke-width="0.8"/>
+      <line x1="60" y1="-4" x2="60" y2="4" stroke="#1a0e08" stroke-width="0.8"/>
+      <ellipse cx="55" cy="0" rx="10" ry="4" fill="#7a0808" opacity="0.65"/>
+    </g>
+    <g fill="#a02020" opacity="0.7">
+      <circle cx="120" cy="220" r="2"/>
+      <circle cx="140" cy="228" r="1.5"/>
+      <circle cx="280" cy="212" r="2.2"/>
+      <circle cx="300" cy="220" r="1.5"/>
+      <circle cx="90" cy="210" r="1.8"/>
+    </g>
+  </svg>`
+},
+
+'bloom': {
+  caption: '花 开',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bgBloom" cx="50%" cy="45%" r="85%">
+        <stop offset="0%"  stop-color="#240e0e"/>
+        <stop offset="100%" stop-color="#060508"/>
+      </radialGradient>
+      <radialGradient id="petal" cx="50%" cy="60%">
+        <stop offset="0%"  stop-color="#ff6060"/>
+        <stop offset="45%" stop-color="#c02020"/>
+        <stop offset="100%" stop-color="#3a0606"/>
+      </radialGradient>
+      <radialGradient id="petalInner" cx="50%" cy="60%">
+        <stop offset="0%"  stop-color="#ff8080"/>
+        <stop offset="70%" stop-color="#a01818"/>
+        <stop offset="100%" stop-color="#3a0606"/>
+      </radialGradient>
+      <radialGradient id="core" cx="50%" cy="50%">
+        <stop offset="0%"  stop-color="#3a0808"/>
+        <stop offset="100%" stop-color="#0a0202"/>
+      </radialGradient>
+      <radialGradient id="bloomGlow" cx="50%" cy="50%">
+        <stop offset="0%"  stop-color="#ff3030" stop-opacity="0.6"/>
+        <stop offset="50%" stop-color="#c01010" stop-opacity="0.22"/>
+        <stop offset="100%" stop-color="#a01010" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="bloomGlow2" cx="50%" cy="50%">
+        <stop offset="0%"  stop-color="#ff7070" stop-opacity="0.45"/>
+        <stop offset="100%" stop-color="#ff3030" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="260" fill="url(#bgBloom)"/>
+    <circle cx="200" cy="130" r="150" fill="url(#bloomGlow)"/>
+    <circle cx="200" cy="130" r="80" fill="url(#bloomGlow2)"/>
+    <g transform="translate(200 130)">
+      <g opacity="0.8">
+        <path d="M 0 0 Q 30 -50 0 -95 Q -30 -50 0 0" fill="url(#petal)" transform="rotate(0)"/>
+        <path d="M 0 0 Q 30 -50 0 -95 Q -30 -50 0 0" fill="url(#petal)" transform="rotate(30)"/>
+        <path d="M 0 0 Q 30 -50 0 -95 Q -30 -50 0 0" fill="url(#petal)" transform="rotate(60)"/>
+        <path d="M 0 0 Q 30 -50 0 -95 Q -30 -50 0 0" fill="url(#petal)" transform="rotate(90)"/>
+        <path d="M 0 0 Q 30 -50 0 -95 Q -30 -50 0 0" fill="url(#petal)" transform="rotate(120)"/>
+        <path d="M 0 0 Q 30 -50 0 -95 Q -30 -50 0 0" fill="url(#petal)" transform="rotate(150)"/>
+        <path d="M 0 0 Q 30 -50 0 -95 Q -30 -50 0 0" fill="url(#petal)" transform="rotate(180)"/>
+        <path d="M 0 0 Q 30 -50 0 -95 Q -30 -50 0 0" fill="url(#petal)" transform="rotate(210)"/>
+        <path d="M 0 0 Q 30 -50 0 -95 Q -30 -50 0 0" fill="url(#petal)" transform="rotate(240)"/>
+        <path d="M 0 0 Q 30 -50 0 -95 Q -30 -50 0 0" fill="url(#petal)" transform="rotate(270)"/>
+        <path d="M 0 0 Q 30 -50 0 -95 Q -30 -50 0 0" fill="url(#petal)" transform="rotate(300)"/>
+        <path d="M 0 0 Q 30 -50 0 -95 Q -30 -50 0 0" fill="url(#petal)" transform="rotate(330)"/>
+      </g>
+      <g opacity="0.95">
+        <path d="M 0 0 Q 22 -36 0 -68 Q -22 -36 0 0" fill="url(#petalInner)" transform="rotate(22)"/>
+        <path d="M 0 0 Q 22 -36 0 -68 Q -22 -36 0 0" fill="url(#petalInner)" transform="rotate(67)"/>
+        <path d="M 0 0 Q 22 -36 0 -68 Q -22 -36 0 0" fill="url(#petalInner)" transform="rotate(112)"/>
+        <path d="M 0 0 Q 22 -36 0 -68 Q -22 -36 0 0" fill="url(#petalInner)" transform="rotate(157)"/>
+        <path d="M 0 0 Q 22 -36 0 -68 Q -22 -36 0 0" fill="url(#petalInner)" transform="rotate(202)"/>
+        <path d="M 0 0 Q 22 -36 0 -68 Q -22 -36 0 0" fill="url(#petalInner)" transform="rotate(247)"/>
+        <path d="M 0 0 Q 22 -36 0 -68 Q -22 -36 0 0" fill="url(#petalInner)" transform="rotate(292)"/>
+        <path d="M 0 0 Q 22 -36 0 -68 Q -22 -36 0 0" fill="url(#petalInner)" transform="rotate(337)"/>
+      </g>
+      <circle r="18" fill="url(#core)"/>
+      <circle r="11" fill="#0a0202"/>
+      <g fill="#ff8a6a" opacity="0.85">
+        <circle cx="0" cy="-7" r="1.4"/>
+        <circle cx="4" cy="-4" r="1.2"/>
+        <circle cx="6" cy="2" r="1.2"/>
+        <circle cx="4" cy="6" r="1.4"/>
+        <circle cx="-4" cy="6" r="1.4"/>
+        <circle cx="-6" cy="2" r="1.2"/>
+        <circle cx="-4" cy="-4" r="1.2"/>
+      </g>
+    </g>
+    <g stroke="#7a0a0a" stroke-width="0.7" opacity="0.55">
+      <line x1="200" y1="150" x2="200" y2="232"/>
+      <line x1="190" y1="148" x2="186" y2="226"/>
+      <line x1="210" y1="148" x2="214" y2="226"/>
+    </g>
+    <circle cx="200" cy="248" r="2" fill="#7a0a0a" opacity="0.6"/>
+  </svg>`
+},
+
+'seed': {
+  caption: '种 子',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bgSeed" cx="50%" cy="60%" r="75%">
+        <stop offset="0%"  stop-color="#141014"/>
+        <stop offset="100%" stop-color="#060508"/>
+      </radialGradient>
+      <radialGradient id="palm" cx="50%" cy="50%">
+        <stop offset="0%"  stop-color="#c8a090"/>
+        <stop offset="60%" stop-color="#7a5a50"/>
+        <stop offset="100%" stop-color="#3a2820"/>
+      </radialGradient>
+      <radialGradient id="seedG" cx="40%" cy="35%">
+        <stop offset="0%"  stop-color="#5a4a3a"/>
+        <stop offset="55%" stop-color="#1a1008"/>
+        <stop offset="100%" stop-color="#050302"/>
+      </radialGradient>
+      <radialGradient id="seedGlow" cx="50%" cy="50%">
+        <stop offset="0%" stop-color="#c84040" stop-opacity="0.45"/>
+        <stop offset="100%" stop-color="#c84040" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="260" fill="url(#bgSeed)"/>
+    <g transform="translate(200 160)">
+      <path d="M -90 0 Q -85 -30 -50 -35 Q 0 -45 50 -35 Q 85 -30 90 0 Q 95 40 60 60 Q 0 75 -60 60 Q -95 40 -90 0 Z" fill="url(#palm)"/>
+      <g stroke="#3a2018" stroke-width="0.6" fill="none" opacity="0.45">
+        <path d="M -70 -10 Q 0 -20 70 -10"/>
+        <path d="M -60 15 Q 0 8 60 15"/>
+        <path d="M -40 35 Q 0 32 40 35"/>
+      </g>
+    </g>
+    <circle cx="200" cy="140" r="36" fill="url(#seedGlow)"/>
+    <ellipse cx="200" cy="140" rx="11" ry="14" fill="url(#seedG)" stroke="#3a2018" stroke-width="0.6"/>
+    <ellipse cx="196" cy="135" rx="3" ry="4" fill="#8a7a5a" opacity="0.4"/>
+    <circle cx="200" cy="140" r="2" fill="#ffb0b0" opacity="0.7"/>
+  </svg>`
+},
+
+'chat': {
+  caption: '聊 天 页 面',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="phoneBg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="#3a2a2a"/>
+        <stop offset="100%" stop-color="#1a1010"/>
+      </linearGradient>
+      <linearGradient id="screenBg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="#1a1418"/>
+        <stop offset="100%" stop-color="#0e0a0c"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="260" fill="#060508"/>
+    <rect x="120" y="20" width="160" height="220" rx="14" fill="url(#phoneBg)" stroke="#4a3a3a" stroke-width="1.2"/>
+    <rect x="128" y="32" width="144" height="200" rx="6" fill="url(#screenBg)"/>
+    <rect x="128" y="32" width="144" height="26" fill="#221a1e"/>
+    <circle cx="146" cy="45" r="8" fill="#8a3a3a"/>
+    <text x="160" y="50" fill="#d8b8b8" font-family="sans-serif" font-size="9">林静依</text>
+    <text x="256" y="50" fill="#5a4a4a" font-family="sans-serif" font-size="7" text-anchor="end">···</text>
+    <rect x="196" y="76" width="66" height="24" rx="6" fill="#3a4a68"/>
+    <text x="204" y="92" fill="#e8e8f0" font-family="sans-serif" font-size="10">谢谢你</text>
+    <text x="256" y="114" fill="#5a5a6a" font-family="sans-serif" font-size="6" text-anchor="end">去年 · 已读</text>
+    <text x="200" y="150" fill="#4a3a3a" font-family="sans-serif" font-size="7" text-anchor="middle">— 很久很久以后 —</text>
+    <rect x="136" y="176" width="66" height="24" rx="6" fill="#3a2828"/>
+    <text x="144" y="192" fill="#e8c8c8" font-family="sans-serif" font-size="10">谢谢你</text>
+    <text x="136" y="216" fill="#5a4a4a" font-family="sans-serif" font-size="6">刚刚</text>
+    <circle cx="200" cy="240" r="2" fill="#3a3a3a"/>
+  </svg>`
+},
+
+'notebook': {
+  caption: '作 业 本 上 的 花',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%"  stop-color="#ece2d0"/>
+        <stop offset="100%" stop-color="#d8cebc"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="260" fill="#0a0808"/>
+    <rect x="0" y="0" width="400" height="260" fill="#14100c"/>
+    <g transform="translate(200 130) rotate(-6)">
+      <rect x="-130" y="-90" width="260" height="180" rx="2" fill="url(#paper)" stroke="#a89678" stroke-width="0.6"/>
+      <line x1="-118" y1="-90" x2="-118" y2="90" stroke="#c8b098" stroke-width="0.8"/>
+      <g stroke="#c8b8a0" stroke-width="0.5" opacity="0.7">
+        <line x1="-100" y1="-70" x2="120" y2="-70"/>
+        <line x1="-100" y1="-50" x2="120" y2="-50"/>
+        <line x1="-100" y1="-30" x2="120" y2="-30"/>
+        <line x1="-100" y1="-10" x2="120" y2="-10"/>
+        <line x1="-100" y1="10"  x2="120" y2="10"/>
+        <line x1="-100" y1="30"  x2="120" y2="30"/>
+        <line x1="-100" y1="50"  x2="120" y2="50"/>
+        <line x1="-100" y1="70"  x2="120" y2="70"/>
+      </g>
+      <g stroke="#8a1a1a" stroke-width="0.9" fill="none" opacity="0.85">
+        <circle cx="-60" cy="-60" r="6"/>
+        <circle cx="-60" cy="-60" r="3"/>
+        <line x1="-60" y1="-54" x2="-60" y2="-46"/>
+        <circle cx="10" cy="-50" r="5"/>
+        <circle cx="10" cy="-50" r="2.5"/>
+        <line x1="10" y1="-45" x2="10" y2="-38"/>
+        <circle cx="70" cy="-30" r="7"/>
+        <circle cx="70" cy="-30" r="3.5"/>
+        <line x1="70" y1="-23" x2="70" y2="-14"/>
+        <circle cx="-40" cy="0" r="5.5"/>
+        <circle cx="-40" cy="0" r="2.8"/>
+        <line x1="-40" y1="5.5" x2="-40" y2="14"/>
+        <circle cx="30" cy="20" r="6"/>
+        <circle cx="30" cy="20" r="3"/>
+        <line x1="30" y1="26" x2="30" y2="34"/>
+        <circle cx="90" cy="40" r="5"/>
+        <circle cx="90" cy="40" r="2.5"/>
+        <line x1="90" y1="45" x2="90" y2="53"/>
+        <circle cx="-80" cy="50" r="5.5"/>
+        <circle cx="-80" cy="50" r="2.8"/>
+        <line x1="-80" y1="55.5" x2="-80" y2="64"/>
+        <circle cx="-10" cy="60" r="6.5"/>
+        <circle cx="-10" cy="60" r="3.2"/>
+        <line x1="-10" y1="66.5" x2="-10" y2="76"/>
+      </g>
+      <ellipse cx="60" cy="68" rx="8" ry="3" fill="#8a1a1a" opacity="0.35"/>
+    </g>
+  </svg>`
+},
+
+'wall_words': {
+  caption: '墙 上 的 字',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bgWall" cx="50%" cy="50%" r="85%">
+        <stop offset="0%"  stop-color="#1a0a0a"/>
+        <stop offset="100%" stop-color="#030202"/>
+      </radialGradient>
+      <radialGradient id="wallLight" cx="50%" cy="50%">
+        <stop offset="0%" stop-color="#a02020" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="#a02020" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="260" fill="url(#bgWall)"/>
+    <ellipse cx="200" cy="130" rx="180" ry="120" fill="url(#wallLight)"/>
+    <g stroke="#2a1010" stroke-width="0.4" opacity="0.35">
+      <line x1="0" y1="50"  x2="400" y2="50"/>
+      <line x1="0" y1="110" x2="400" y2="110"/>
+      <line x1="0" y1="170" x2="400" y2="170"/>
+      <line x1="0" y1="230" x2="400" y2="230"/>
+    </g>
+    <g stroke="#c02020" stroke-width="1.6" fill="none" opacity="0.95">
+      <text x="60" y="60" fill="#c02020" font-family="sans-serif" font-size="22" transform="rotate(-8 60 60)">我累了</text>
+    </g>
+    <g stroke="#a02020" stroke-width="0.9" fill="none" opacity="0.8">
+      <text x="230" y="80" fill="#a02020" font-family="sans-serif" font-size="12" transform="rotate(5 230 80)">我讨厌你</text>
+      <text x="50" y="130" fill="#a02020" font-family="sans-serif" font-size="11">你是不是傻</text>
+      <text x="260" y="145" fill="#a02020" font-family="sans-serif" font-size="10" transform="rotate(-4 260 145)">恶心</text>
+      <text x="80" y="185" fill="#a02020" font-family="sans-serif" font-size="13" transform="rotate(3 80 185)">元谋人</text>
+      <text x="250" y="205" fill="#a02020" font-family="sans-serif" font-size="12">别挨着我</text>
+      <text x="130" y="240" fill="#a02020" font-family="sans-serif" font-size="11" transform="rotate(-2 130 240)">丑八怪</text>
+    </g>
+    <g stroke="#801010" stroke-width="0.7" fill="none" opacity="0.55">
+      <path d="M 30 90 Q 40 82 50 92 Q 60 100 70 90 Q 80 82 90 92"/>
+      <path d="M 150 110 Q 160 100 170 112 Q 180 122 190 112"/>
+      <path d="M 300 100 Q 310 92 320 102 Q 330 110 340 102"/>
+      <path d="M 30 210 Q 42 200 54 212 Q 66 220 78 210"/>
+      <path d="M 300 220 Q 312 210 324 222 Q 336 230 348 220"/>
+    </g>
+    <g fill="#7a0808" opacity="0.75">
+      <ellipse cx="120" cy="75" rx="1.5" ry="3"/>
+      <ellipse cx="200" cy="105" rx="1.5" ry="4"/>
+      <ellipse cx="310" cy="160" rx="2" ry="4"/>
+      <ellipse cx="60"  cy="160" rx="1.5" ry="3.5"/>
+      <ellipse cx="170" cy="220" rx="1.5" ry="3"/>
+      <ellipse cx="260" cy="240" rx="1.5" ry="3.5"/>
+    </g>
+    <ellipse cx="200" cy="130" rx="6" ry="6" fill="#ff5050" opacity="0.35"/>
+    <ellipse cx="200" cy="130" rx="2" ry="2" fill="#ffa0a0" opacity="0.8"/>
+  </svg>`
+},
+
+'faded_pot': {
+  caption: '褪 色 的 花 盆',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="bgFade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="#181818"/>
+        <stop offset="100%" stop-color="#0a0a0a"/>
+      </linearGradient>
+      <linearGradient id="potFade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="#484848"/>
+        <stop offset="55%" stop-color="#2a2a2a"/>
+        <stop offset="100%" stop-color="#141414"/>
+      </linearGradient>
+      <radialGradient id="soilFade" cx="50%" cy="50%">
+        <stop offset="0%"  stop-color="#1a1a1a"/>
+        <stop offset="100%" stop-color="#0a0a0a"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="260" fill="url(#bgFade)"/>
+    <g transform="translate(200 155)">
+      <path d="M -72 -40 L 72 -40 L 60 65 Q 0 78 -60 65 Z" fill="url(#potFade)" stroke="#0a0a0a" stroke-width="1.5"/>
+      <ellipse cx="0" cy="-40" rx="74" ry="14" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="1.2"/>
+      <ellipse cx="0" cy="-38" rx="66" ry="10" fill="url(#soilFade)"/>
+      <g stroke="#0a0a0a" stroke-width="0.6" fill="none" opacity="0.7">
+        <path d="M -40 -36 L -30 -30 L -20 -36"/>
+        <path d="M 10 -34 L 20 -28 L 30 -34"/>
+        <path d="M -10 -40 L 0 -34 L 10 -40"/>
+      </g>
+    </g>
+    <g fill="#3a3a3a" opacity="0.35">
+      <circle cx="80"  cy="60"  r="0.8"/>
+      <circle cx="320" cy="80"  r="0.6"/>
+      <circle cx="140" cy="200" r="0.7"/>
+      <circle cx="270" cy="220" r="0.9"/>
+      <circle cx="60"  cy="150" r="0.5"/>
+    </g>
+    <rect x="0" y="0" width="400" height="40" fill="#2a2a2a" opacity="0.4"/>
+  </svg>`
+},
+
+'mirror': {
+  caption: '镜 中',
+  svg: `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bgMir" cx="50%" cy="50%" r="85%">
+        <stop offset="0%"  stop-color="#2a0606"/>
+        <stop offset="100%" stop-color="#040203"/>
+      </radialGradient>
+      <linearGradient id="mirrorFrame" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="#6a3a30"/>
+        <stop offset="100%" stop-color="#2a1814"/>
+      </linearGradient>
+      <radialGradient id="mirrorGlass" cx="50%" cy="40%">
+        <stop offset="0%"  stop-color="#a03838" stop-opacity="0.75"/>
+        <stop offset="55%" stop-color="#4a0a0a" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#0a0303"/>
+      </radialGradient>
+      <radialGradient id="mirrorGlow" cx="50%" cy="50%">
+        <stop offset="0%"  stop-color="#ff3030" stop-opacity="0.4"/>
+        <stop offset="100%" stop-color="#ff3030" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="260" fill="url(#bgMir)"/>
+    <circle cx="200" cy="130" r="150" fill="url(#mirrorGlow)"/>
+    <rect x="112" y="34" width="176" height="212" rx="88" ry="96" fill="url(#mirrorFrame)" stroke="#3a2018" stroke-width="1.5"/>
+    <rect x="124" y="46" width="152" height="188" rx="76" ry="84" fill="url(#mirrorGlass)"/>
+    <g fill="#050202" opacity="0.85">
+      <ellipse cx="200" cy="118" rx="26" ry="32"/>
+      <path d="M 174 148 Q 200 140 226 148 L 234 230 Q 200 240 166 230 Z"/>
+    </g>
+    <circle cx="192" cy="114" r="2" fill="#e8e0d8" opacity="0.85"/>
+    <circle cx="208" cy="114" r="2" fill="#e8e0d8" opacity="0.85"/>
+    <g stroke="#c8b0b0" stroke-width="0.7" opacity="0.5" fill="none">
+      <path d="M 200 50 L 206 100 L 188 138 L 212 188 L 200 232"/>
+      <path d="M 206 100 L 240 84"/>
+      <path d="M 188 138 L 152 156"/>
+      <path d="M 212 188 L 244 202"/>
+    </g>
+    <ellipse cx="200" cy="115" rx="60" ry="70" fill="#ff2020" opacity="0.08"/>
+    <ellipse cx="200" cy="252" rx="70" ry="6" fill="#7a0808" opacity="0.5"/>
+  </svg>`
+}
+
+};
+
+/* ============================================================
+   剧情节点
+============================================================ */
+const NODES = {
+
+start: {
+  chapter:'序章', title:'气味', flower:'empty',
+  cg:'scent', music:'A',
+  text:[
+    '你叫蓝羽，初一开学那天，你第一次闻到那种气味。',
+    '不是臭味。',
+    '像是什么东西在湿润的泥土里缓慢腐烂，又像某种花在深夜里悄然绽放。它绕在你的鼻尖，若有若无，等你认真去找，又消失了。',
+    '你分辨不清。只是后来——在很久很久以后——你才明白，那是静依的气味。',
+    {t:'又或者，那就是静依本身。', fx:'whisper'},
+    '初一军训，宿舍里挤着八个女生。你睡上铺，下铺空着，直到傍晚才有人搬进来。',
+    '那是一个低矮臃肿的身影，虎背熊腰，皮肤黝黑而凹凸不平，庞大的脸上五官挤在一起。唯有两颗黑漆漆亮晶晶的眼仁，在昏黄的宿舍里像两粒浸了水的石子。',
+    '她爽朗地冲你笑：“你好，我叫林静依。”',
+    '——那一刻你注意到，她的笑容在你脑海里留下了一个非常清晰的印象：眼睛弯成两道月牙，嘴角上扬，露出两排整齐的牙齿。',
+    '你不擅长主动结交他人。可静依有一种奇怪的能力——她能稳稳接住你说的每一句话。',
+    '你说“今天好热”，她说“热得我差点把自己烤成红薯”。你说“教官好凶”，她说“凶得我腿都软了，你看——”她捏了捏自己粗壮的胳膊，“软得像棉花糖”。',
+    '你哈哈大笑。',
+    '夏日炎炎，军训不可避免大量出汗。你替静依擦痱子粉，她痒得笑出声，一时兴起给你起了外号。',
+    '“小羽毛。”',
+    '她这么叫你的时候，眼睛弯成两道月牙，嘴角上扬，露出两排整齐的牙齿。',
+    {t:'和刚才一模一样。', fx:'flicker'},
+    '你忽然觉得，她其实很好看。'
+  ],
+  next:'ch1_bowl'
+},
+
+ch1_bowl: {
+  chapter:'第一章', title:'空花盆', flower:'empty',
+  cg:'empty_pot', music:'A',
+  text:[
+    {t:'第一章 · 空花盆', fx:'chapter'},
+    '正式上课了。新教室在五楼，窗台宽敞。班主任呼吁每人带一盆植物来装点班级。',
+    '绿萝、兰花、太阳花、水仙花……各色植物挤满窗台，像一场无声的选美。',
+    '静依带来的，是一个硕大的空花盆。',
+    '深褐色的陶土，边缘有一圈浅浅的花纹，里面是湿漉漉的黑土。你伸手想碰，静依忽然按住你的手腕。',
+    '“别碰。”',
+    '你愣了一下。她也愣了一下，随即笑开：“土里有种子，碰了会移位。”',
+    '“你的花呢？”你好奇。',
+    '她拍了拍花盆边缘：“我亲手埋下的花种，会伴随我一起在新学期里生根、发芽、长大。品种是什么，等长出来小羽毛就知道啦。”',
+    {t:'她的眼睛弯成两道月牙。', fx:'whisper'},
+    '你信了。你甚至开始每天去看那个空花盆，给它浇水，观察土壤有没有裂缝，有没有嫩芽冒头。你比静依本人还要上心。',
+    '——但有件事你一直没想明白。',
+    {t:'你每天浇水，土壤却始终保持着同样的湿度。不多不少。', fx:'flicker'},
+    '新的校园生活也迎来新的同桌。',
+    '静依的新同桌叫贺彬。高挑纤瘦，皮肤光滑白得刺眼，长而窄小的脸上嵌着一双狭长的眼睛。与静依站在一起，像两种极端被强行并置。',
+    '贺彬对被分配为静依的同桌这件事，极度不满。',
+    '“你能不能别挨着我？”',
+    '这是他第一天对静依说的第一句话。'
+  ],
+  next:'ch2_yuanmou'
+},
+
+ch2_yuanmou: {
+  chapter:'第二章', title:'元谋人', flower:'empty',
+  cg:'eyes', music:'A',
+  text:[
+    {t:'第二章 · 元谋人', fx:'chapter'},
+    '霸凌是从言语开始的。',
+    '“你能不能别说话了，你一说话整个教室都在震动。”',
+    '“你能不能别转头，我怕做噩梦。”',
+    '这些话起初只是小声嘀咕，后来变成公开的抱怨，再后来变成表演。贺彬会在课间故意大声叹气，抱怨自己与“丑八怪”共度的“苦难”生活，引得周围男生哄笑。',
+    '静依没有回击。她只是把头埋得更低，肩膀一寸一寸地塌下去。',
+    '你注意到一个奇怪的细节——',
+    {t:'每当有人在她面前说完侮辱的话转身离开，那个人会在走出两步后忽然皱一下眉，像是忘了什么东西。然后摇摇头，又笑了。', fx:'flicker'},
+    '历史课上，老师讲到原始社会“元谋人”，展示了课本上的插图。贺彬看着插图，又看了看身旁的静依，勾起唇角。',
+    '他找到了共识的笑点。',
+    '“哎，你们看，”他压低声音对后排男生说，“像不像？”',
+    '下课铃一响，他呼朋唤友，叫来外班同学，声称能看现实里的“元谋人”。蜂拥而至的眼睛粘在静依身上，尾随她到走廊、到食堂、到厕所门口。',
+    '静依开始低头走路。她的脊背像一座山脊，把所有目光压在身上。',
+    {t:'只有你在看她的眼睛。', fx:'whisper'},
+    {t:'那些黑漆漆的眼仁还是和军训那天一样，亮得不像话。它们不眨，也不躲，只是望着某个你没法聚焦的方向。', fx:'dread'},
+    '你愤怒了。'
+  ],
+  choices:[
+    { text:'站起来，当场呵斥贺彬',
+      inner:'（你有理。你声音大。你站得直。你至少敢。）',
+      next:'a1', effects:{ trust:+1 } },
+    { text:'课后私下安慰静依',
+      inner:'（不要在众人面前说出来。你怕。但你至少可以在没人的时候说出真话。）',
+      next:'a2' },
+    { text:'沉默。你怕自己成为下一个目标',
+      inner:'（你想站起来。可你的腿不听你的。你低下头，把作业本翻到下一页。）',
+      next:'a3', effects:{ trust:-1, guilt:+1 } }
+  ]
+},
+
+a1: {
+  chapter:'第二章', title:'元谋人', music:'A',
+  text:[
+    '你站起来，指着贺彬的鼻子：“你够了没有？你觉得自己很幽默吗？”',
+    '教室里安静了一瞬。',
+    '贺彬看着你，脸上没有任何愠色，反而笑了。那种笑让你脊背发凉——他好像在看一只努力举起爪子的猫。',
+    '他听话地笑笑，揽着人群走开。',
+    '但就像沉入大海的石头，溅起一点微弱的水花，同学们因短暂的扫兴四散，又会在下一次再次聚集。',
+    '静依看了你一眼。',
+    {t:'那是你第一次在她眼睛里看到某种东西——不像是感激。更像是一种怜悯。', fx:'flicker'},
+    '她什么都没说。'
+  ],
+  next:'ch3_rift'
+},
+
+a2: {
+  chapter:'第二章', title:'元谋人', music:'A',
+  text:[
+    '你等到放学，拉住静依：“你别理他们，他们就是无聊。”',
+    '静依勉强笑了笑：“嗯，我知道。”',
+    {t:'她说这句话的时候，眼睛也是弯的。和军训那天一模一样。你忽然觉得，她好像不真的在笑。', fx:'whisper'},
+    '第二天，贺彬的嘲笑变本加厉。静依没有再向你求助，她只是更沉默了。'
+  ],
+  next:'ch3_rift'
+},
+
+a3: {
+  chapter:'第二章', title:'元谋人', music:'A',
+  text:[
+    '你没有说话。你怕自己如果站出来，会成为下一个目标。',
+    '你只是在课间偷偷看静依，看她低头、看她缩肩、看她在厕所隔间里偷偷哭。',
+    {t:'你甚至听见了那哭声。它不太像人。倒像是土壤深处，有什么湿润的东西在缓慢地、有节奏地裂开。', fx:'shake'},
+    '你把脸埋进课本里。'
+  ],
+  next:'ch3_rift'
+},
+
+ch3_rift: {
+  chapter:'第三章', title:'裂痕', flower:'empty',
+  cg:'rift', music:'A',
+  text:[
+    {t:'第三章 · 裂痕', fx:'chapter'},
+    '无论你做了什么，有一件事都在悄然发生。',
+    '静依开始排斥你。',
+    '起初是微小的变化。你叫她“静依”，她不再笑着回应。你给她带早餐，她说“不用了”。你问她怎么了，她说“没事”。',
+    '然后，第一次恶语相向。',
+    '那天放学，你拦住她，想说点什么。她猛地转过头，眼睛通红，声音尖利——',
+    '“你不要再假惺惺了，你又懂什么？！”',
+    '你愣住了。',
+    '静依从来没有用这种语气跟你说过话。',
+    {t:'但更让你愣住的是——你突然想起来，你不记得今天早上是怎么来到学校的。', fx:'flicker'},
+    {t:'不记得昨天有没有吃饭。不记得上一次听到下课铃是什么时候。', fx:'flicker'},
+    '你张了张嘴，什么都没说出来。她转身跑了。'
+  ],
+  choices:[
+    { text:'“我假惺惺？我每天帮你、陪你、替你说话，你说我假惺惺？”',
+      inner:'（你被冤枉了。你要说清楚。你没有做错任何事。）',
+      next:'b1', effects:{ trust:-1 } },
+    { text:'沉默。你看着她跑远，但你没有离开',
+      inner:'（不知道说什么。但你站在原地。也许这本身就是一种回答。）',
+      next:'b2', effects:{ trust:+1, flag:'persist' } },
+    { text:'“对不起。我不知道我哪里做错了，但我道歉。”',
+      inner:'（道歉。即使不知道错在哪。因为比起对错，你更不想失去她。）',
+      next:'b3', effects:{ trust:+2, flag:'persist' } }
+  ]
+},
+
+b1: {
+  chapter:'第三章', title:'裂痕', music:'A',
+  text:[
+    '静依停住脚步，回头看你，嘴唇颤抖。',
+    {t:'她的嘴唇没有发出声音。但你几乎听见了——', fx:'whisper'},
+    {t:'“你根本不懂。”', fx:'whisper'},
+    '但她最终什么都没说，消失在了楼道尽头。',
+    '你站在原地，胸口堵得发疼。'
+  ],
+  next:'ch4_fall'
+},
+
+b2: {
+  chapter:'第三章', title:'裂痕', music:'A',
+  text:[
+    '你没有说话。你看着她跑远，心里像被什么东西攥住。',
+    '第二天，你继续偷偷看她的花盆，继续在她被嘲笑时捏紧拳头。',
+    '你不再上前，但你没有离开。',
+    {t:'你只是站在她看不见的地方，一遍又一遍地想——', fx:'whisper'},
+    {t:'如果那天你没有沉默，会怎么样？', fx:'whisper'}
+  ],
+  next:'ch4_fall'
+},
+
+b3: {
+  chapter:'第三章', title:'裂痕', music:'A',
+  text:[
+    '静依愣住了，转过身来。',
+    '“我不知道我哪里做错了，但我道歉。如果你不想理我，我走。但我想让你知道，我从来没有假惺惺。”',
+    '静依的眼泪一下子涌出来。她捂着脸跑了。',
+    '但第二天，她的桌上多了一颗糖。',
+    {t:'——是你的。你知道。', fx:'whisper'},
+    {t:'但你什么都没说。', fx:'whisper'}
+  ],
+  next:'ch4_fall'
+},
+
+ch4_fall: {
+  chapter:'第四章', title:'坠落', flower:'empty',
+  cg:'fall', music:'A',
+  text:[
+    {t:'第四章 · 坠落', fx:'chapter'},
+    '无论你选了什么，静依的处境都在恶化。',
+    '她的成绩从班级中流一路下滑到吊车尾。贺彬稳稳保持中上游，这为他嗤笑静依多了一个理由：“丑就算了，还蠢。”',
+    '调换同桌需要多方协调。但静依的名声被贺彬搞臭，老师询问多人，没有得到同意的回答。',
+    '你主动表示愿意和静依坐。全班震惊。',
+    '静依却一口否决了。',
+    '“不用。”她说，语气冰冷。',
+    '你不知道自己做错了什么。静依宁愿忍受贺彬的嘲弄，继续跟他坐在一起。',
+    {t:'你被背叛了。你非常受伤。', fx:'flicker'},
+    {t:'——但你更受伤的是，那盆花。', fx:'whisper'},
+    {t:'那盆你说过每天去浇水的花，你忽然发现，你已经整整四天没有靠近过它了。', fx:'whisper'},
+    {t:'可它的土壤，还是湿的。', fx:'dread'}
+  ],
+  choices:[
+    { text:'狠狠心，不再管静依了',
+      inner:'（你已经尽力了。她不要你。不是你的错。）',
+      next:'c1', effects:{ guilt:+1 } },
+    { text:'不再找她说话，但每天趁没人的时候给那盆空花盆浇水',
+      inner:'（不说话也行。你只是想继续做一件小事。哪怕她永远不知道。）',
+      next:'c2', effects:{ trust:+1, flag:'water' } }
+  ]
+},
+
+c1: {
+  chapter:'第四章', title:'坠落', music:'A',
+  text:[
+    '你决定不再去管静依。包括那盆你曾经每天都要看一看、浇浇水的静依的花。',
+    '一年时间里，你不再特别关注她。在同学的只言片语中，你听到男生们毫无节制的恶心嘲弄，听到女生们“可怜之人必有可恨之处”的抱怨。',
+    '你偶尔也会不自觉地看向静依，却永远只能看到她低下的头与山脊般的肩背。',
+    {t:'这一年，教室里少了一点气味。', fx:'whisper'},
+    {t:'你没法确定是变淡了，还是你习惯了。', fx:'whisper'}
+  ],
+  next:'ch5_vanish'
+},
+
+c2: {
+  chapter:'第四章', title:'坠落', music:'A',
+  text:[
+    '你不再主动找静依说话。但你每天趁没人的时候，给那盆空花盆浇水。',
+    '你不知道自己为什么要这么做。',
+    '也许是因为你答应过她。也许是因为你想证明什么。',
+    '也许只是因为，那盆花还在等。',
+    {t:'你越浇，土壤越湿。', fx:'whisper'},
+    {t:'你浇得越多，花盆边缘的那圈花纹就越清晰。像是有人在你没看见的时候，重新描了一遍。', fx:'flicker'}
+  ],
+  next:'ch5_vanish'
+},
+
+ch5_vanish: {
+  chapter:'第五章', title:'消失', flower:'sprout',
+  cg:'sprout', music:'A',
+  text:[
+    {t:'第五章 · 消失', fx:'chapter'},
+    '初二开学三周后，静依消失了。',
+    '那是一个再平常不过的午后。语文课堂上，你一边听课一边在书上随手涂鸦，渐渐画出了一只眼睛。',
+    '看到这只眼睛，你猛地觉得很眼熟。下意识向那个曾很熟悉的方向看去——',
+    {t:'空空如也。', fx:'shake'},
+    '你不记得自己是怎么意识到这件事的。你只知道，从那一刻起，你脑子里所有关于静依的记忆，忽然变得异常清晰，又异常遥远。',
+    {t:'像隔着一层水。', fx:'whisper'},
+    '下课后，耳边是男生们无法忽略的尖锐笑声，眼下是一个干裂的空花盆。时隔许久，你再次用杯子给静依的花浇水。',
+    '在一排盛开而争奇斗艳的花丛里，静依的花盆仍旧光秃秃的，仿佛停滞在了最初最初的时节。',
+    '你开始观察静依的花。你向其他人询问静依的事情，却没有得到任何确切的答案。',
+    {t:'“她谁啊？”', fx:'whisper'},
+    {t:'“有这个人吗？”', fx:'whisper'},
+    {t:'“你怎么最近老问这种怪问题？”', fx:'whisper'},
+    '直到有一天，花盆里长出来了东西。',
+    '带着一点特殊的气味。',
+    '是之前难得和静依擦肩而过时，她身上的气味。是静依的气味。',
+    '你欣喜若狂。似乎这就能说明静依好起来了。她在好起来了。',
+    {t:'花开那一天，她会回学校来吗？', fx:'dread'}
+  ],
+  next:'ch5_bud'
+},
+
+ch5_bud: {
+  chapter:'第五章', title:'花苞', flower:'bud',
+  cg:'bud', music:'B',
+  text:[
+    '嫩芽起初小小的，然后舒展开来，慢慢长大。',
+    '渐渐地，变成了一只丰满的花苞。',
+    '你看着含苞欲放的花朵，无比期待着明天的到来。',
+    {t:'——但你从未想过一件事。', fx:'whisper'},
+    {t:'花盆旁边那张桌上的主人，是你。这张桌子，是静依曾坐过的。', fx:'whisper'},
+    {t:'而你从未换过座位。你只是忘了自己坐在这里。', fx:'flicker'}
+  ],
+  next:'ch6_night'
+},
+
+ch6_night: {
+  chapter:'第六章', title:'夜晚', flower:'bud',
+  cg:'night', music:'A',
+  text:[
+    {t:'第六章 · 夜晚', fx:'chapter'},
+    '因为太过激动，加上今天自己小组做值日，导致你忘带了作业本。你只好折返回学校。',
+    '晚自习下了以后，天已经完全黑了。你从学校的小门挤进去，溜进了教学楼。班级在五楼，楼梯上你清点着要拿的东西。',
+    '快走到教室门口，你才发现教室的门开着一条缝。',
+    '怎么会呢？你记得自己和同学做完卫生是关好了门才走的。',
+    {t:'——你确定吗？', fx:'whisper'},
+    '你有些紧张，悄悄走近门缝。',
+    '教室里没有开灯。淡淡的、冷冷的月光下，一个漆黑的人影站在窗台前。你有点近视，平时上课会戴上眼镜，加上环境很暗，你努力睁大眼睛去看。',
+    '那个人影窸窸窣窣地摆弄着，发出低沉的、呜呜咽咽的声音。',
+    {t:'那声音像有人在哭。又像有人在往土里埋什么东西。', fx:'dread'},
+    '你看清了——人影是在对着窗台上的植物们做着什么。',
+    '你担忧起静依的花来。',
+    '你鼓起勇气，找准了教室后的灯，猛地打开，大声质问：“是谁？！”',
+    {t:'啪——', fx:'shake'},
+    '人影被突然亮起的灯吓得跳起，转过身来。',
+    '你看到了满脸泪痕的静依。',
+    '——不。',
+    {t:'你看到的是一张脸。你非常肯定那是静依的脸。', fx:'glitch'},
+    {t:'可你又觉得，那不完全是。她的眼睛还是那两粒浸了水的石子，黑得发亮。但你没有看到月牙。', fx:'glitch'},
+    {t:'你没有看到月牙。', fx:'glitch'},
+    '她捂着手腕，一个东西从她指尖猛然掉落，发出清脆的金属响声。',
+    '静依瞪大了眼睛，显然没料到会有人回来。她冲出了教室，快得像一个真正的影子。',
+    '你甚至没抓住她的一根发丝。转瞬间，静依消失在楼道。'
+  ],
+  choices:[
+    { text:'追出去',
+      inner:'（不管那是不是她。你只知道，你不能再一次看着她跑掉了。）',
+      next:'d1', effects:{ flag:'seed' } },
+    { text:'不追。回到教室，慢慢走向窗台',
+      inner:'（你追不上。但你必须去看看那盆花。你必须知道，刚才那里发生了什么。）',
+      next:'d2', effects:{ flag:'investigate' } },
+    { text:'不追。关上门，像什么都没发生一样走回家',
+      inner:'（不是你的责任。你已经做了太多。就让今晚像所有普通的夜晚一样过去。）',
+      next:'d3', effects:{ guilt:+2 } }
+  ]
+},
+
+d1: {
+  chapter:'第六章', title:'夜晚', music:'A',
+  cg:'knife',
+  text:[
+    '你追了出去。楼道里空无一人，窗户大开着，夜风灌进来。你跑下五层楼，跑出教学楼，跑到校门口——',
+    '什么都没有。',
+    {t:'你站在校门口，喘着气，才发现自己光着脚。', fx:'flicker'},
+    {t:'——你什么时候脱的鞋？', fx:'flicker'},
+    '你回到教室，慢慢走向窗台。',
+    '掉在地上的是一把打开的小刀。',
+    '而面前硕大的花盆里，红褐色的痕迹正慢慢渗进土壤里。',
+    {t:'你蹲下来，闻到一股气味。', fx:'whisper'},
+    {t:'不是静依的气味了。', fx:'whisper'},
+    {t:'是血。', fx:'dread'},
+    '你捂住了嘴巴。'
+  ],
+  next:'ch7_bloom'
+},
+
+d2: {
+  chapter:'第六章', title:'夜晚', music:'A',
+  cg:'knife',
+  text:[
+    '你没有追。你知道追不上。',
+    '你回到教室里，慢慢走向窗台。',
+    '掉在地上的是一把打开的小刀。',
+    '而面前硕大的花盆里，红褐色的痕迹正慢慢渗进土壤里。',
+    {t:'你蹲下来，闻到一股气味。', fx:'whisper'},
+    {t:'不是静依的气味了。', fx:'whisper'},
+    {t:'是血。', fx:'dread'},
+    '你捂住了嘴巴。',
+    '你拿出手机，给静依发了一条消息：“你在哪？你还好吗？”',
+    '没有回复。',
+    {t:'——你知道不会有的。', fx:'whisper'}
+  ],
+  next:'ch7_bloom'
+},
+
+d3: {
+  chapter:'第六章', title:'夜晚', music:'A',
+  cg:'night',
+  text:[
+    '你站在原地，听着静依的脚步声消失在楼道尽头。',
+    '你慢慢退回门口，关上门，像什么都没发生一样走回家。',
+    {t:'你不记得自己是怎么到家的。', fx:'flicker'},
+    {t:'你只记得，躺下之后，你听见有人在耳边说话。', fx:'whisper'},
+    {t:'“你走了。”', fx:'whisper'},
+    {t:'“你又一次走了。”', fx:'dread'},
+    '第二天，你请了假。你辗转反侧整晚都没能睡好。',
+    '手机上是和静依的聊天框，但只有你这一侧发着一连串的消息。'
+  ],
+  next:'ch7_bloom'
+},
+
+ch7_bloom: {
+  chapter:'第七章', title:'花开', flower:'bloom',
+  cg:'bloom', music:'B',
+  text:[
+    {t:'第七章 · 花开', fx:'chapter'},
+    '第三天，你还是顶着黑眼圈回到了学校。',
+    '一进门，你发现一群同学围在窗台前。你心里一惊，赶忙挤进去查看。',
+    '映入眼帘的是一朵开得极其热烈而绝艳的红色花朵。层层花瓣展开，像血红的纱织铺在漫天的星光里，永恒地旋转、徜徉。',
+    '大家惊呼着她的美丽，赞扬着她的动人——包括贺彬。',
+    {t:'贺彬说：“这也太好看了吧，谁的花啊？”', fx:'glitch'},
+    {t:'他说这句话的时候，脸上带着真诚的惊叹。他完全忘了，这盆花是他每天咒骂的那个人的。', fx:'glitch'},
+    '但没人知道这是谁的花。',
+    '她像是突然出现在大家的视野里，直到用生命盛开才被人知晓存在。',
+    {t:'——只有你。', fx:'whisper'},
+    {t:'只有你还记得，那是一个空花盆。', fx:'whisper'},
+    '感叹完后，贺彬和其他人又叫那些曾经的朋友们前来观赏。一波一波的人臣服于她夺目的鲜艳。这是枯燥的校园生活里再次出现的乐趣。',
+    '你始终沉默着。',
+    '第四天，第五天。再美丽的花朵也有溃败的一天。也没有人会再看一朵正在腐烂的花。她再次被议论，被遗忘，直到重新融化在泥土里。',
+    {t:'到最后一天，花瓣落在土里，你看了一眼花盆。', fx:'whisper'},
+    {t:'土壤上，残留着一些浅褐色的绒毛。', fx:'whisper'},
+    {t:'你确信那是属于人的。', fx:'dread'},
+    '你和静依的聊天框，最终停留在你发的最后一条消息上。',
+    '是一张图片。图片里是窗台前尽情盛放的鲜花。'
+  ],
+  choices:[
+    { text:'发一句“谢谢你”',
+      inner:'（你知道她可能永远看不到。但你想让她知道，有人记得。）',
+      next:'ending_reborn' },
+    { text:'那天晚上，你从与泥土混在一起的花瓣残骸中，捡走了一颗小小的、黑色的种子',
+      inner:'（你不能让这一切就这么烂掉。至少留下点什么。）',
+      next:'after_seed', condition: s => s.flags.seed, special: true },
+    { text:'删掉对话框里所有的字，关掉手机',
+      inner:'（就当它没开过。就当她没有来过。就当这一切只是你太累了。）',
+      next:'ending_oblivion' },
+    { text:'你想起那天晚上，静依捂着手腕站在月光里。你想起很多个如果。你闭上了眼睛',
+      inner:'（这一次，你不想再睁开眼睛。就让这一切停在血红色的寂静里吧。）',
+      next:'ending_eternalnight', condition: () => getUnlocked().includes('symbiosis'), special: true }
+  ]
+},
+
+after_seed: {
+  chapter:'第七章', title:'花种', flower:'wither',
+  cg:'seed', music:'B',
+  text:[
+    '你把它重新种在了花盆里。',
+    '你不知道它会开出什么。',
+    '但你决定等。',
+    {t:'那天晚上，你又闻到了那种气味。', fx:'whisper'},
+    {t:'它从花盆里升起来，绕过你的肩膀，落在你的后颈。', fx:'dread'},
+    {t:'然后，你做了一个很长的梦。', fx:'whisper'}
+  ],
+  next: s => s.trust >= 3 ? 'ending_symbiosis' : 'ending_assimilate'
+},
+
+ending_reborn: {
+  chapter:'结局', title:'新生', flower:'wither', ending:'reborn',
+  cg:'chat', music:'B',
+  text:[
+    '你打了一行字，删掉，又打，又删。',
+    '最后你只发了三个字：',
+    '“谢谢你。”',
+    '你知道静依可能永远看不到。但你发了。',
+    '恰逢微信开始流行，你也不再经常打开QQ了。',
+    '静依到底也没有再回到学校。后来你得知，静依初二那年退学了，她在家里休整了一年后转学到了其他地方。',
+    '初中毕业以后，你为了保存曾经的照片再次打开企鹅聊天软件。一条未读的消息提醒弹了出来。',
+    '头像是一朵熟悉又陌生的红色花朵。',
+    '你点进去。在一张显示已过期的图片下方，是一句时隔许久的回复——',
+    '“谢谢你。”',
+    '你盯着那三个字看了很久。',
+    '窗外阳光正好。',
+    '你想起那个空花盆，想起静依说“等长出来小羽毛就知道啦”。',
+    {t:'你始终不知道那朵花的名字。', fx:'whisper'},
+    {t:'但你知道，它开过。', fx:'whisper'}
+  ]
+},
+
+ending_assimilate: {
+  chapter:'结局', title:'同化', flower:'wither', ending:'assimilate',
+  cg:'notebook', music:'A',
+  text:[
+    '你没有发现，自己被吞噬了。',
+    '在被侵吞的一刹那，你等到的不是任何想象中恶心黏腻的不适感，反而是一种前所未有的舒适与轻盈。',
+    {t:'像是终于回到了某个你从未去过、却认得的地方。', fx:'dread'},
+    '你睁开了眼，从桌子上缓缓爬起来，抬起头。',
+    '耳边是嘈杂的声音，同学们早都已经苏醒。贺彬坐在自己的座位上同旁人笑着攀谈，声音却大得所有人能听到——',
+    '“喂，元谋人可总算滚出咱们班了。”',
+    '“不过，你们觉不觉得XXX像她老公啊？哈哈哈哈？”',
+    '“对对对，你也这么觉得啊？他俩那样子简直两口子好吧！”',
+    '“哈哈哈哈哈哈哈快看快看啊——”',
+    '被指着的大个子男生将自己山峰一样的脊背蜷缩在角落里。',
+    {t:'——你忽然觉得那个男生眼熟。', fx:'flicker'},
+    {t:'但你不知道他是谁。', fx:'flicker'},
+    '你淡淡收回了视线。',
+    '翻开了作业本。',
+    '作业本上，不知何时画满了花。',
+    {t:'你没有画过。', fx:'whisper'}
+  ]
+},
+
+ending_symbiosis: {
+  chapter:'结局', title:'共生', flower:'wither', ending:'symbiosis',
+  cg:'wall_words', music:'B',
+  text:[
+    '你捡起了那颗花种。',
+    '你把它种在了一个新的花盆里，放在窗台上。你没有告诉任何人。',
+    '那天晚上，你做了一个梦。',
+    '梦里你站在一间教室里，墙壁上密密麻麻写满了字。你认出了贺彬清秀隽逸的字、班里最爱接话的男生歪歪扭扭的字、安静内秀的女孩方方正正的字。',
+    '你找到了自己的字。',
+    '三个字。',
+    '“我累了。”',
+    {t:'——你不记得自己写过这句话。', fx:'flicker'},
+    '你的心突然狠狠痛起来。你不知道是你在痛还是静依在痛。',
+    '你摸索着，在裤子口袋里颤颤巍巍地掏出了一张皱皱巴巴的纸条。',
+    '上面也是三个字——',
+    '“对不起。”',
+    {t:'你同样不记得自己写过这句话。', fx:'whisper'},
+    {t:'但这一次，你希望它是真的。', fx:'whisper'},
+    '重影的字在进入脑海里的刹那发出强烈的光芒。你紧紧闭上了眼睛。',
+    '再次睁开眼，你回到了自己的座位上。你不知觉中冒了一身冷汗，陡然坐起身来。',
+    '周围仍是一片安静。同学们奇异地都还在午休的迷梦中。直到班主任敲着黑板走进来提示休息时间的结束，大家才迷迷糊糊地醒来，一副惊魂未定的样子。',
+    '声音此起彼伏地混杂起来。你听到大家在讨论方才的噩梦，却没有一人记得梦里到底发生了什么，只是都像从水里刚捞出来，以及空前的、不知名的愧疚感。',
+    '而贺彬却没有因老师的声音醒来，像是被固定在了桌面上，露出的耳朵毫无血色。没一个人上前询问。',
+    '你缓缓看向身旁的花盆。窗外的阳光洒在花盆的边缘。',
+    '从静依身边捡回来的花种，开出了极其艳丽的花朵，此时却已经枯萎了。花瓣融进了土里，生命力似乎正在一点点流失。',
+    '但你却知道——',
+    '这是她的新生。',
+    {t:'——或者说，', fx:'whisper'},
+    {t:'是你们的。', fx:'whisper'}
+  ]
+},
+
+ending_oblivion: {
+  chapter:'结局', title:'遗忘', flower:'wither', ending:'oblivion',
+  cg:'faded_pot', music:'A',
+  text:[
+    '你删掉了对话框里所有的字。',
+    '你关掉手机，看向窗外。',
+    '花已经谢了。你甚至不确定它是否真的开过。',
+    '时间过得很快。初中毕业，高中，大学。',
+    '你偶尔会想起初一那个夏天，想起一个叫林静依的女孩。',
+    '但记忆越来越模糊。你甚至记不清她的脸。',
+    '你只记得，她好像给过你一个外号。',
+    {t:'叫什么来着。', fx:'whisper'},
+    {t:'——小羽毛。', fx:'whisper'},
+    {t:'你想不起来了。', fx:'flicker'},
+    '花盆里的花早就谢了。没有人记得它开过。',
+    '包括你。'
+  ]
+},
+
+ending_eternalnight: {
+  chapter:'结局', title:'永夜', flower:'wither', ending:'eternalnight',
+  cg:'mirror', music:'A',
+  text:[
+    {t:'那天晚上，你终于想起了所有的事。', fx:'dread'},
+    '你想起静依抱着花盆，从五楼的窗台前跳了下去。',
+    '你冲下去的时候，警察和医护人员还没来。静依的身体以一种不可能的姿态扭曲在地面上，花盆碎裂，泥土与血泊混在一起。',
+    '你从泥土里捡走了一颗花种。',
+    '你伤心地将花种重新种在了花盆里。',
+    '而静依，异化与花融为了一体。',
+    '盛开的花朵香气危险而迷人，迷醉了所有午休中的人，将整个教室笼罩住，像是拖进了一个新的异世界空间里。',
+    '这里天空是花瓣一样的血红，下着永远不停的淅淅沥沥的腥涩雨水。除了你以外，每个人都被锈迹斑斑的金属荆棘缠绕着，牢牢固定在座位上，此起彼伏的哀嚎与挣扎耸动其间。',
+    '而讲台上，扎根着一株巨大而粗壮、虬结在一起的血色枝蔓。有一道白得刺眼的人影被紧紧挤压在中间。',
+    '是贺彬。',
+    '枝蔓间是密密麻麻的鼓动着的肉红脓包，上面覆盖着白花花的油脂状网膜。一些脓包跳动着倏然炸裂开来，黄褐色的汁液流溅在贺彬裸露的身体上，瞬时烫出一个个大小不一、深色的孔洞。',
+    '尖利的咆哮回荡至天花板，震碎了上面些许焦枯的枝条，灰烬般稀稀拉拉地落下。',
+    '你捂着鼻子堪堪躲过。',
+    '还没等你仔细看清如今的现况，身后一阵阵巨响。转头看去，座位上的同学们——不，已经不能称之为同学了——是怪物们，一个个如雨后春笋般从椅子上连根拔起。',
+    '它们仿佛早已与座椅融汇为一体，嘶吼着从其中爬出，血淋淋地硬生生扯出那些吞没了它们四肢的腐烂根条，然后开始朝你的方向抽搐蠕动。',
+    '你小腿一软，踉跄着后退，却被一个分外潮湿的东西搭在了肩膀处。',
+    '扭头看去，是身后的“贺彬”伸出一只胳膊扣住了你。因为距离过近，你可以清楚地看到关节处已经被腐蚀得血肉模糊，露出了森森白骨。',
+    '在一众剧烈的咆哮声里，你的尖叫被淹了进去。你逼迫自己用力呼吸，一甩肩膀扯掉了扒住自己的指节，肩膀处留下了一个黏腻非常的血掌印。',
+    '你强撑住作呕的眩晕感，拼尽力气夺门而出。',
+    '你跑到了走廊里，理所当然地空无一人。窗户大开着，雨水漫进来打湿了地板，地板积了一层不深不浅的水痕，倒映出无边血红的天空。',
+    '你不知为何这一次跑得比以往都格外吃力，脚下如同灌了千斤的铁水，每一步都让你的喉咙被迫撕裂开来，漫上干涩的血沫又吞回去。',
+    '身后的响动一直在变大、变近。你的心跳也传至耳壁，上下回荡，就差直接飞出耳廓。',
+    '终于快要跑到走廊尽头，远远往下看去却是井底般空洞漆黑的楼梯，只能依稀窥到两三节台阶。',
+    '迟疑了一瞬的你被突然窜到脚前的金属荆条哐当一声绊倒在雨水里，身上的校服沾上泥水，被天空投影后像是迸射其上的血迹。',
+    '比起身后黑压压一片还在匍匐扭动的怪物们，让你呆住了的是身侧余光里的画面——',
+    '这是一面校友为母校捐赠的镜子，每一层楼的楼梯口处都有一个，为了帮助同学们正衣冠、矫己行。',
+    '而此时这面模糊的镜子里倒影出来的却不是你自己。',
+    '是静依。',
+    '你摸向自己的脸，镜子里的人也做出同样的举动。',
+    '是静依。',
+    '你大脑越发混乱了。你为什么会莫名其妙到这个不知名的地方来，又变成了静依的模样？',
+    '但还不等你细想，身后的荆条再次抽来。你下意识向身旁一滚来躲避，却忘了旁边就是楼梯口。你连滚带爬地摔下宛如黑洞般的楼梯，直到撞在一面墙上才堪堪停下来。',
+    '本就头晕目眩的你如今脑子里更是嗡鸣作响。但好在身后簌簌的爬动声不见了。',
+    '你缓缓坐起来，眼前却是一片鲜红。你以为是因为摔跤眼部充血了，揉了揉眼睛抬头看去——',
+    '周围一片浓稠的黑，只有面前的墙上有光。',
+    '你定睛一看，墙上的鲜红原来是密密麻麻的、不同的字迹。因为你是班里的学习委员，平时不少收作业，所以没多久你就反应过来了——',
+    '这些字迹都是班上同学们的。',
+    '那道清秀隽逸的字迹是与内心完全不符的贺彬的字。那道歪歪扭扭如同爬行的字是班里最爱接话的男生的字。那道整整齐齐方方正正的字是班里一个安静内秀的女孩的字……',
+    '但内容却无一例外地张牙舞爪起来，像一把把锋利的尖刃刻进了墙里，划开了深渊般的口子。',
+    '其中，你找到了自己的字。',
+    '三个字。',
+    '“我累了。”',
+    '之后你再也没有去找过静依。',
+    '你的心突然狠狠痛起来，像被一只手紧紧收缩在指尖。你不知道是你在痛还是静依在痛。',
+    '你撑着墙面晃晃悠悠地站起身来。下一刻，之前的爆鸣声再次于耳边炸开。那些怪物们又开始行动了。',
+    '你不断向楼下奔逃，但每一层都会回到那面墙的跟前，而怪物们不知疲惫地追逐着，嘶喊着，哀嚎着。',
+    '你的呼吸变得急促，嗓子也越来越紧。你不停地咳嗽，把着楼梯，脚步虚浮。',
+    '你要坚持不住了。',
+    '力竭的最后一刻，你瘫倒在墙边，闭上眼睛，四肢已然僵硬了，只有嘴唇还在颤抖着，准备等待怪物们的包围吞噬。',
+    '你摸着墙面上的伤痕，猛然惊觉——全班同学的字迹都在上面了。',
+    '但，等等。',
+    '静依的字呢？',
+    {t:'没有静依的字。', fx:'glitch'},
+    '怪物们已经蠕动到最后一个台阶。因为长时间的追逐，它们已经从个体缠扭碰撞在了一起，湿漉漉的腐烂了的根条彼此相勾牵连，打成了死结，搓揉成了一个肉糊状的不规则球形瘤体。',
+    '里面的各色头颅在挤压畸变后融化了一般，显得面目狰狞，已然分不清性别与谁，一路滚一路滴滴答答地流下斑驳的、混着碎渣的血水，显得泥泞不堪。',
+    '只有最顶上贺彬的头颅尚还清晰可见。',
+    '你的胳膊在跑动中抽筋了，如同被生生撕开的痛感在手腕处汇聚，在指尖到达顶峰。你咬着牙摸索，最终在裤子口袋里颤颤巍巍地掏出了一张皱皱巴巴、边缘沾着黄渍的纸条。',
+    '像是被无数次捏在发汗的手心里又松开，又无奈地回到了口袋里继续磋磨。纸条上的字已经模糊了，出现了重影。',
+    '是黑色签字笔的痕迹。',
+    '上面也是三个字——',
+    '“对不起。”',
+    '重影的字在进入脑海里的刹那发出强烈的光芒，迫使你紧紧闭上了眼睛。而已经到眼前、只差一步之遥的肉球被闪光劈开，在拖长混音的惨叫中粉碎。',
+    '再次睁开眼，你回到了自己的座位上。你不知觉中冒了一身冷汗，陡然坐起身来。',
+    {t:'窗外阳光正好。', fx:'whisper'},
+    {t:'你低头看向自己的手——', fx:'whisper'},
+    {t:'掌心，是一颗极小的、黑色的种子。', fx:'dread'}
+  ]
+}
+
+};
+
+/* ============================================================
+   引擎
+============================================================ */
+const $ = id => document.getElementById(id);
+
+let queue   = [];
+let waiting = false;
+let node    = null;
+let nextBtn = null;
+
+const FLOWER_MARKS = { empty:'◌', sprout:'⌇', bud:'❋', bloom:'✿', wither:'·' };
+
+const MUSIC_PREF_KEY = 'jingyi_music';
+function getMusicPref(){
+  try{
+    const v = localStorage.getItem(MUSIC_PREF_KEY);
+    return v === null ? true : v === '1';
+  }catch(e){ return true; }
+}
+function setMusicPref(on){
+  try{ localStorage.setItem(MUSIC_PREF_KEY, on ? '1' : '0'); }catch(e){}
+}
+function updateMusicBtn(){
+  const btn = $('music-btn');
+  if(!btn) return;
+  btn.classList.toggle('muted', !Music.isPlaying);
+  btn.classList.toggle('playing', Music.isPlaying);
+}
+
+function startGame(){
+  $('title-screen').classList.add('hidden');
+  $('game').classList.remove('hidden');
+  resetState();
+  history = [];
+  replayMode = false;
+  loadNode('start');
+}
+
+function resetState(){
+  state.trust = 0; state.guilt = 0;
+  state.flower = 'empty'; state.flags = {}; state.current = null;
+}
+
+function loadNode(id){
+  const n = NODES[id];
+  if(!n){ console.error('Missing node:', id); return; }
+  node = n;
+  state.current = id;
+
+  if(n.chapter){
+    const t = n.title ? ' · ' + n.title : '';
+    $('chapter-name').textContent = n.chapter + t;
+    if(n.cg === 'scent' || n.text.some(p => p && p.fx === 'chapter')){
+      SFX.chime();
+    }
+  }
+  if(n.flower) state.flower = n.flower;
+  updateFlower();
+
+  const contentEl = $('content');
+  contentEl.className = n.ending ? ('ending-colored ending-' + n.ending) : '';
+
+  const hasDread = n.text.some(p => p && p.fx === 'dread');
+  document.body.classList.toggle('dread', !!hasDread || !!n.ending);
+
+  if(n.music) Music.setTrack(n.music);
+  if(n.cg === 'bloom') SFX.bloom();
+
+  renderCG(n.cg);
+
+  queue = n.text.slice();
+  waiting = false;
+  $('text').innerHTML = '';
+  $('choices').innerHTML = '';
+  $('scroll').scrollTop = 0;
+
+  updateBackBtn();
+  revealNext();
+}
+
+function renderCG(cgKey){
+  const box = $('cg-display');
+  box.innerHTML = '';
+  if(!cgKey) return;
+
+  const cg = CGS[cgKey];
+  if(!cg){ console.warn('Missing CG:', cgKey); return; }
+
+  if(cg.svg){
+    box.innerHTML = cg.svg;
+  } else if(cg.img){
+    const img = document.createElement('img');
+    img.src = cg.img;
+    img.alt = cg.caption || '';
+    box.appendChild(img);
+  }
+
+  if(cg.caption){
+    const cap = document.createElement('div');
+    cap.className = 'cg-caption';
+    cap.textContent = cg.caption;
+    box.appendChild(cap);
+  }
+}
+
+function revealNext(){
+  if(queue.length === 0) return false;
+  const item = queue.shift();
+
+  const p = document.createElement('p');
+  p.className = 'para';
+
+  let textStr = item;
+  if(typeof item === 'object' && item !== null){
+    textStr = item.t;
+    if(item.fx) p.classList.add('fx-' + item.fx);
+    if(item.fx === 'chapter') p.classList.add('chapter-title');
+  }
+  p.textContent = textStr;
+
+  $('text').appendChild(p);
+  requestAnimationFrame(() => {
+    const s = $('scroll'); s.scrollTop = s.scrollHeight;
+  });
+  return true;
+}
+
+function advance(){
+  if(waiting) return;
+  if($('game').classList.contains('hidden')) return;
+
+  if(queue.length > 0){
+    revealNext();
+    if(queue.length === 0) showNextButton();
+    return;
+  }
+  finishNode();
+}
+
+function finishNode(){
+  if(node.choices){
+    waiting = true;
+    renderChoices(node.choices);
+    return;
+  }
+  if(node.ending){
+    waiting = true;
+    renderEnding(node.ending);
+    return;
+  }
+  if(node.next){
+    pushHistory();
+    let nid = node.next;
+    if(typeof nid === 'function') nid = nid(state);
+    loadNode(nid);
+    return;
+  }
+}
+
+function pushHistory(){
+  history.push({
+    nodeId: state.current,
+    trust: state.trust,
+    guilt: state.guilt,
+    flower: state.flower,
+    flags: { ...state.flags }
+  });
+}
+
+function goBack(){
+  if(history.length === 0) return;
+  if(node && node.ending) return;
+  const snap = history.pop();
+  state.trust = snap.trust;
+  state.guilt = snap.guilt;
+  state.flower = snap.flower;
+  state.flags = { ...snap.flags };
+  loadNode(snap.nodeId);
+}
+
+function updateBackBtn(){
+  const btn = $('back-btn');
+  if(!btn) return;
+  btn.disabled = history.length === 0 || (node && node.ending);
+}
+
+function renderChoices(choices){
+  const box = $('choices');
+  const valid = choices.filter(c => !c.condition || c.condition(state));
+  if(valid.length === 0) valid.push({ text:'……', next:'ending_oblivion' });
+
+  valid.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice' + (c.special ? ' special' : '');
+    btn.style.animationDelay = (i * 0.12) + 's';
+
+    const mainSpan = document.createElement('span');
+    mainSpan.textContent = c.text;
+    btn.appendChild(mainSpan);
+
+    if(c.inner){
+      const innerSpan = document.createElement('span');
+      innerSpan.className = 'inner';
+      innerSpan.textContent = c.inner;
+      btn.appendChild(innerSpan);
+    }
+
+    btn.addEventListener('click', ev => {
+      ev.stopPropagation();
+      SFX.click();
+      pickChoice(c);
+    });
+    box.appendChild(btn);
+  });
+  scrollBottom();
+}
+
+function pickChoice(c){
+  pushHistory();
+  if(c.effects){
+    if(c.effects.trust) state.trust += c.effects.trust;
+    if(c.effects.guilt) state.guilt += c.effects.guilt;
+    if(c.effects.flag)  state.flags[c.effects.flag] = true;
+  }
+  waiting = false;
+  let nid = c.next;
+  if(typeof nid === 'function') nid = nid(state);
+  loadNode(nid);
+}
+
+const ENDING_NAMES = {
+  reborn:'结局 · 新生', assimilate:'结局 · 同化', symbiosis:'结局 · 共生',
+  oblivion:'结局 · 遗忘', eternalnight:'结局 · 永夜'
+};
+
+const ENDING_COLORS = {
+  reborn:'#e8c98a', symbiosis:'#c0b4dc', assimilate:'#c07070',
+  oblivion:'#909090', eternalnight:'#e03030'
+};
+
+function renderEnding(id){
+  unlockEnding(id);
+  const box = $('choices');
+
+  const mark = document.createElement('div');
+  mark.className = 'ending-mark';
+  mark.textContent = ENDING_NAMES[id] || '结局';
+  box.appendChild(mark);
+
+  const restartBtn = document.createElement('button');
+  restartBtn.className = 'restart-btn';
+  restartBtn.textContent = '重新开始';
+  restartBtn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    SFX.click();
+    resetState();
+    history = [];
+    replayMode = false;
+    loadNode('start');
+  });
+  box.appendChild(restartBtn);
+
+  const homeBtn = document.createElement('button');
+  homeBtn.className = 'home-btn';
+  homeBtn.textContent = '回到首页';
+  homeBtn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    SFX.click();
+    returnToTitle();
+  });
+  box.appendChild(homeBtn);
+
+  scrollBottom();
+}
+
+function returnToTitle(){
+  $('game').classList.add('hidden');
+  $('title-screen').classList.remove('hidden');
+  document.body.classList.remove('dread');
+  renderEndingsList();
+}
+
+function showNextButton(){
+  if(nextBtn) return;
+  if(node.choices || node.ending) return;
+
+  nextBtn = document.createElement('button');
+  nextBtn.className = 'next-btn';
+  nextBtn.innerHTML = '继 续 <span class="arrow">▸</span>';
+  nextBtn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    SFX.advance();
+    removeNextButton();
+    advance();
+  });
+  $('choices').appendChild(nextBtn);
+  scrollBottom();
+}
+
+function removeNextButton(){
+  if(nextBtn && nextBtn.parentNode) nextBtn.parentNode.removeChild(nextBtn);
+  nextBtn = null;
+}
+
+function updateFlower(){
+  const el = $('flower-mark');
+  el.textContent = FLOWER_MARKS[state.flower] || '◌';
+  el.setAttribute('data-state', state.flower);
+}
+
+function scrollBottom(){
+  requestAnimationFrame(() => {
+    const s = $('scroll'); s.scrollTop = s.scrollHeight;
+  });
+}
+
+function getUnlocked(){
+  try{ return JSON.parse(localStorage.getItem('jingyi_endings') || '[]'); }
+  catch(e){ return []; }
+}
+function unlockEnding(id){
+  try{
+    const arr = getUnlocked();
+    if(!arr.includes(id)){
+      arr.push(id);
+      localStorage.setItem('jingyi_endings', JSON.stringify(arr));
+    }
+  }catch(e){}
+}
+
+function renderEndingsList(){
+  const unlocked = getUnlocked();
+  const order = ['reborn','assimilate','symbiosis','oblivion','eternalnight'];
+  const el = $('endings-list');
+  el.innerHTML = '';
+  if(unlocked.length === 0) return;
+
+  const title = document.createElement('div');
+  title.className = 'el-title';
+  title.textContent = '结局回廊';
+  el.appendChild(title);
+
+  order.forEach(k => {
+    const got = unlocked.includes(k);
+    const btn = document.createElement('button');
+    btn.className = 'ending-link' + (got ? ' got' : ' locked');
+    btn.textContent = got ? ENDING_NAMES[k] : '？？？';
+    if(got){
+      btn.style.color = ENDING_COLORS[k] || '#9c6b6b';
+      const arrow = document.createElement('span');
+      arrow.className = 'el-arrow';
+      arrow.textContent = '重读 ›';
+      btn.appendChild(arrow);
+      btn.addEventListener('click', () => replayEnding(k));
+    } else {
+      btn.disabled = true;
+    }
+    el.appendChild(btn);
+  });
+}
+
+function replayEnding(endingKey){
+  const nodeId = 'ending_' + endingKey;
+  if(!NODES[nodeId]) return;
+
+  SFX.click();
+  $('title-screen').classList.add('hidden');
+  $('game').classList.remove('hidden');
+  resetState();
+  history = [];
+  replayMode = true;
+  loadNode(nodeId);
+}
+
+/* ============================================================
+   事件绑定
+============================================================ */
+$('start-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  ensureMusic();
+  SFX.click();
+  startGame();
+});
+
+$('back-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  SFX.click();
+  goBack();
+});
+
+$('music-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  if(!Music.ctx) Music.init();
+  Music.toggle();
+  setMusicPref(Music.isPlaying);
+  updateMusicBtn();
+});
+
+document.addEventListener('click', e => {
+  if(e.target.closest('button')) return;
+  if(!$('title-screen').classList.contains('hidden')) return;
+  removeNextButton();
+  SFX.advance();
+  advance();
+});
+
+document.addEventListener('keydown', e => {
+  if(e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight'){
+    if(!$('title-screen').classList.contains('hidden')) return;
+    if(e.target.closest('button')) return;
+    removeNextButton();
+    SFX.advance();
+    advance();
+  }
+  if(e.key === 'Backspace'){
+    if($('title-screen').classList.contains('hidden') && !$('back-btn').disabled){
+      e.preventDefault();
+      SFX.click();
+      goBack();
+    }
+  }
+});
+
+let musicInitialized = false;
+function ensureMusic(){
+  if(musicInitialized) return;
+  musicInitialized = true;
+  if(getMusicPref()){
+    Music.start();
+    updateMusicBtn();
+  }
+}
+document.addEventListener('click', ensureMusic);
+
+renderEndingsList();
+updateMusicBtn();
+</script>
+</body>
+</html>
